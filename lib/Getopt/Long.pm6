@@ -164,8 +164,8 @@ sub new {
     }
 
     if ( %atts ) {		# Oops
-	die(__PACKAGE__.": unhandled attributes: ".
-	    join(" ", sort(keys(%atts)))."\n");
+	die(__PACKAGE__~": unhandled attributes: "~
+	    join(" ", sort(keys(%atts)))~"\n");
     }
 
     $self;
@@ -184,7 +184,7 @@ sub configure {
 sub getoptions {
     my ($self) = shift;
 
-    return $self.getoptionsfromarray(\@ARGV, @_);
+    return $self.getoptionsfromarray(\@*ARGS, @_);
 }
 
 sub getoptionsfromarray {
@@ -196,20 +196,20 @@ sub getoptionsfromarray {
     # Call main routine.
     my $ret = 0;
     $Getopt::Long::caller = $self.{caller_pkg};
-
-    eval {
+    my @__= @_;
+    try {
 	# Locally set exception handler to default, otherwise it will
 	# be called implicitly here, and again explicitly when we try
 	# to deliver the messages.
-	local (%SIG{__DIE__}) = 'DEFAULT';
-	$ret = Getopt::Long::GetOptionsFromArray (@_);
+	# local (%SIG{__DIE__}) = 'DEFAULT'; check this
+	$ret = Getopt::Long::GetOptionsFromArray (@__);
     };
 
     # Restore saved settings.
     Getopt::Long::Configure ($save);
 
     # Handle errors and return value.
-    die ($@) if $@;
+    die ($!) if $!;
     return $ret;
 }
 }
@@ -220,7 +220,7 @@ class Getopt::Long
 
 # Indices in option control info.
 # Note that ParseOptions uses the fields directly. Search for 'hard-wired'.
-use constant CTL_TYPE    => 0;
+constant CTL_TYPE = 0;
 #use constant   CTL_TYPE_FLAG   => '';
 #use constant   CTL_TYPE_NEG    => '!';
 #use constant   CTL_TYPE_INCR   => '+';
@@ -229,51 +229,47 @@ use constant CTL_TYPE    => 0;
 #use constant   CTL_TYPE_XINT   => 'o';
 #use constant   CTL_TYPE_FLOAT  => 'f';
 #use constant   CTL_TYPE_STRING => 's';
-
-use constant CTL_CNAME   => 1;
-
-use constant CTL_DEFAULT => 2;
-
-use constant CTL_DEST    => 3;
- use constant   CTL_DEST_SCALAR => 0;
- use constant   CTL_DEST_ARRAY  => 1;
- use constant   CTL_DEST_HASH   => 2;
- use constant   CTL_DEST_CODE   => 3;
-
-use constant CTL_AMIN    => 4;
-use constant CTL_AMAX    => 5;
+constant CTL_CNAME = 1;
+constant CTL_DEFAULT = 2;
+constant CTL_DEST = 3;
+constant   CTL_DEST_SCALAR = 0;
+constant   CTL_DEST_ARRAY  = 1;
+constant   CTL_DEST_HASH   = 2;
+constant   CTL_DEST_CODE   = 3;
+constant CTL_AMIN = 4;
+constant CTL_AMAX = 5;
 
 # FFU.
 #use constant CTL_RANGE   => ;
 #use constant CTL_REPEAT  => ;
 
 # Rather liberal patterns to match numbers.
-use constant PAT_INT   => "[-+]?_*[0-9][0-9_]*";
-use constant PAT_XINT  =>
-  "(?:".
-	  "[-+]?_*[1-9][0-9_]*".
-  "|".
-	  "0x_*[0-9a-f][0-9a-f_]*".
-  "|".
-	  "0b_*[01][01_]*".
-  "|".
-	  "0[0-7_]*".
+constant PAT_INT = "[-+]?_*[0-9][0-9_]*";
+constant PAT_XINT =
+  "(?:"~
+	  "[-+]?_*[1-9][0-9_]*"~
+  "|"~
+	  "0x_*[0-9a-f][0-9a-f_]*"~
+  "|"~
+	  "0b_*[01][01_]*"~
+  "|"~
+	  "0[0-7_]*"~
   ")";
-use constant PAT_FLOAT =>
-  "[-+]?".			# optional sign
-  "(?=[0-9.])".			# must start with digit or dec.point
-  "[0-9_]*".			# digits before the dec.point
-  "(\.[0-9_]+)?".		# optional fraction
+constant PAT_FLOAT =
+  "[-+]?"~			# optional sign
+  "(?=[0-9.])"~			# must start with digit or dec.point
+  "[0-9_]*"~			# digits before the dec.point
+  "(\.[0-9_]+)?"~		# optional fraction
   "([eE][-+]?[0-9_]+)?";	# optional exponent
 
-sub GetOptions(@) {
+sub GetOptions {
     # Shift in default array.
-    unshift(@_, \@ARGV);
+    unshift(@_, \@*ARGV);
     # Try to keep caller() and Carp consistent.
     goto &GetOptionsFromArray;
 }
 
-sub GetOptionsFromString(@) {
+sub GetOptionsFromString {
     my ($string) = shift;
     require Text::ParseWords;
     my $args = [ Text::ParseWords::shellwords($string) ];
@@ -304,17 +300,17 @@ sub GetOptionsFromArray(@) {
 
     if ( $debug ) {
 	# Avoid some warnings if debugging.
-	local ($^W) = 0;
+	#local ($^W) = 0;
 	print STDERR
 	  ("Getopt::Long $Getopt::Long::VERSION ",
 	   "called from package \"$pkg\".",
 	   "\n  ",
 	   "argv: ",
 	   defined($argv)
-	   ? UNIVERSAL::isa( $argv, 'ARRAY' ) ? "(@$argv)" : $argv
-	   : "<undef>",
+	   ?? UNIVERSAL::isa( $argv, 'ARRAY' ) ?? "(@$argv)" !! $argv
+	   !! "<undef>",
 	   "\n  ",
-	   "autoabbrev=$autoabbrev,".
+	   "autoabbrev=$autoabbrev,",
 	   "bundling=$bundling,",
 	   "bundling_values=$bundling_values,",
 	   "getopt_compat=$getopt_compat,",
@@ -332,9 +328,9 @@ sub GetOptionsFromArray(@) {
     # Check for ref HASH as first argument.
     # First argument may be an object. It's OK to use this as long
     # as it is really a hash underneath.
-    $userlinkage = undef;
-    if ( @optionlist && ref($optionlist[0]) and
-	 UNIVERSAL::isa($optionlist[0],'HASH') ) {
+    $userlinkage = Mu;
+    if ( @optionlist && ref(@optionlist[0]) and
+	 UNIVERSAL::isa(@optionlist[0],'HASH') ) {
 	$userlinkage = shift (@optionlist);
 	print STDERR ("=> user linkage: $userlinkage\n") if $debug;
     }
@@ -342,14 +338,14 @@ sub GetOptionsFromArray(@) {
     # See if the first element of the optionlist contains option
     # starter characters.
     # Be careful not to interpret '<>' as option starters.
-    if ( @optionlist && $optionlist[0] ~~ m:P5 /^\W+$/
-	 && !($optionlist[0] eq '<>'
+    if ( @optionlist && @optionlist[0] ~~ m:P5 /^\W+$/
+	 && !(@optionlist[0] eq '<>'
 	      && @optionlist > 0
-	      && ref($optionlist[1])) ) {
+	      && ref(@optionlist[1])) ) {
 	$prefix = shift (@optionlist);
 	# Turn into regexp. Needs to be parenthesized!
-	$prefix ~~ m:P5 s/(\W)/\\$1/g;
-	$prefix = "([" . $prefix . "])";
+	$prefix ~~ s:P5:g/(\W)/\\$0/;
+	$prefix = "([" ~ $prefix ~ "])";
 	print STDERR ("=> prefix=\"$prefix\"\n") if $debug;
     }
 
@@ -359,26 +355,26 @@ sub GetOptionsFromArray(@) {
 	my $opt = shift (@optionlist);
 
 	unless ( defined($opt) ) {
-	    $error .= "Undefined argument in option spec\n";
+	    $error ~= "Undefined argument in option spec\n";
 	    next;
 	}
 
 	# Strip leading prefix so people can specify "--foo=i" if they like.
-	$opt = $+ if $opt ~~ m:P5 /^$prefix+(.*)$/s;
+	$opt = $+ if $opt ~~ m:P5 /^$prefix+(.*)$/;
 
 	if ( $opt eq '<>' ) {
 	    if ( (defined $userlinkage)
-		&& !(@optionlist > 0 && ref($optionlist[0]))
+		&& !(@optionlist > 0 && ref(@optionlist[0]))
 		&& (exists $userlinkage.{$opt})
 		&& ref($userlinkage.{$opt}) ) {
 		unshift (@optionlist, $userlinkage.{$opt});
 	    }
 	    unless ( @optionlist > 0
-		    && ref($optionlist[0]) && ref($optionlist[0]) eq 'CODE' ) {
-		$error .= "Option spec <> requires a reference to a subroutine\n";
+		    && ref(@optionlist[0]) && ref(@optionlist[0]) eq 'CODE' ) {
+		$error ~= "Option spec <> requires a reference to a subroutine\n";
 		# Kill the linkage (to avoid another error).
 		shift (@optionlist)
-		  if @optionlist && ref($optionlist[0]);
+		  if @optionlist && ref(@optionlist[0]);
 		next;
 	    }
 	    %linkage{'<>'} = shift (@optionlist);
@@ -389,17 +385,17 @@ sub GetOptionsFromArray(@) {
 	my ($name, $orig) = ParseOptionSpec ($opt, \%opctl);
 	unless ( defined $name ) {
 	    # Failed. $orig contains the error message. Sorry for the abuse.
-	    $error .= $orig;
+	    $error ~= $orig;
 	    # Kill the linkage (to avoid another error).
 	    shift (@optionlist)
-	      if @optionlist && ref($optionlist[0]);
+	      if @optionlist && ref(@optionlist[0]);
 	    next;
 	}
 
 	# If no linkage is supplied in the @optionlist, copy it from
 	# the userlinkage if available.
 	if ( defined $userlinkage ) {
-	    unless ( @optionlist > 0 && ref($optionlist[0]) ) {
+	    unless ( @optionlist > 0 && ref(@optionlist[0]) ) {
 		if ( exists $userlinkage.{$orig} &&
 		     ref($userlinkage.{$orig}) ) {
 		    print STDERR ("=> found userlinkage for \"$orig\": ",
@@ -415,8 +411,8 @@ sub GetOptionsFromArray(@) {
 	}
 
 	# Copy the linkage. If omitted, link to global variable.
-	if ( @optionlist > 0 && ref($optionlist[0]) ) {
-	    print STDERR ("=> link \"$orig\" to $optionlist[0]\n")
+	if ( @optionlist > 0 && ref(@optionlist[0]) ) {
+	    print STDERR ("=> link \"$orig\" to @optionlist[0]\n")
 		if $debug;
 	    my $rl = ref(%linkage{$orig} = shift (@optionlist));
 
@@ -441,28 +437,28 @@ sub GetOptionsFromArray(@) {
 		# Ok.
 	    }
 	    else {
-		$error .= "Invalid option linkage for \"$opt\"\n";
+		$error ~= "Invalid option linkage for \"$opt\"\n";
 	    }
 	}
 	else {
 	    # Link to global $opt_XXX variable.
 	    # Make sure a valid perl identifier results.
 	    my $ov = $orig;
-	    $ov ~~ m:P5 s/\W/_/g;
+	    $ov ~~ s:P5:g/\W/_/;
 	    if ( %opctl{$name}[CTL_DEST] == CTL_DEST_ARRAY ) {
 		print STDERR ("=> link \"$orig\" to \@$pkg","::opt_$ov\n")
 		    if $debug;
-		eval ("\%linkage{\$orig} = \\\@".$pkg."::opt_$ov;");
+		eval ("\%linkage{\$orig} = \\\@"~$pkg~"::opt_$ov;");
 	    }
 	    elsif ( %opctl{$name}[CTL_DEST] == CTL_DEST_HASH ) {
 		print STDERR ("=> link \"$orig\" to \%$pkg","::opt_$ov\n")
 		    if $debug;
-		eval ("\%linkage{\$orig} = \\\%".$pkg."::opt_$ov;");
+		eval ("\%linkage{\$orig} = \\\%"~$pkg~"::opt_$ov;");
 	    }
 	    else {
-		print STDERR ("=> link \"$orig\" to \$$pkg","::opt_$ov\n")
+		print STDERR ("=> link \"$orig\" to \$$pkg"~"::opt_$ov\n")
 		    if $debug;
-		eval ("\%linkage{\$orig} = \\\$".$pkg."::opt_$ov;");
+		eval ("\%linkage{\$orig} = \\\$"~$pkg~"::opt_$ov;");
 	    }
 	}
 
@@ -470,12 +466,12 @@ sub GetOptionsFromArray(@) {
 	     && ( %opctl{$name}[CTL_DEST] == CTL_DEST_ARRAY
 		  || %opctl{$name}[CTL_DEST] == CTL_DEST_HASH )
 	   ) {
-	    $error .= "Invalid option linkage for \"$opt\"\n";
+	    $error ~= "Invalid option linkage for \"$opt\"\n";
 	}
 
     }
 
-    $error .= "GetOptionsFromArray: 1st parameter is not an array reference\n"
+    $error ~= "GetOptionsFromArray: 1st parameter is not an array reference\n"
       unless $argv && UNIVERSAL::isa( $argv, 'ARRAY' );
 
     # Bail out if errors found.
@@ -483,16 +479,16 @@ sub GetOptionsFromArray(@) {
     $error = 0;
 
     # Supply --version and --help support, if needed and allowed.
-    if ( defined($auto_version) ? $auto_version : ($requested_version >= 2.3203) ) {
+    if ( defined($auto_version) ?? $auto_version !! ($requested_version >= 2.3203) ) {
 	if ( !defined(%opctl{version}) ) {
-	    %opctl{version} = ['','version',0,CTL_DEST_CODE,undef];
+	    %opctl{version} = ['','version',0,CTL_DEST_CODE,Mu];
 	    %linkage{version} = \&VersionMessage;
 	}
 	$auto_version = 1;
     }
     if ( defined($auto_help) ? $auto_help : ($requested_version >= 2.3203) ) {
 	if ( !defined(%opctl{help}) && !defined(%opctl{'?'}) ) {
-	    %opctl{help} = %opctl{'?'} = ['','help',0,CTL_DEST_CODE,undef];
+	    %opctl{help} = %opctl{'?'} = ['','help',0,CTL_DEST_CODE,Mu];
 	    %linkage{help} = \&HelpMessage;
 	}
 	$auto_help = 1;
@@ -824,7 +820,7 @@ sub ParseOptionSpec ($$) {
 		     : (?: -?\d+ | \+ ) [@%]?
 		   )?
 		   $;x ) {
-	return (undef, "Error in option spec: \"$opt\"\n");
+	return (Mu, "Error in option spec: \"$opt\"\n");
     }
 
     my ($names, $spec) = ($1, $2);
@@ -852,7 +848,7 @@ sub ParseOptionSpec ($$) {
     my $entry;
     if ( $spec eq '' || $spec eq '+' || $spec eq '!' ) {
 	# Fields are hard-wired here.
-	$entry = [$spec,$orig,undef,CTL_DEST_SCALAR,0,0];
+	$entry = [$spec,$orig,Mu,CTL_DEST_SCALAR,0,0];
     }
     elsif ( $spec ~~ m:P5 /^:(-?\d+|\+)([@%])?$/ ) {
 	my $def = $1;
@@ -862,16 +858,16 @@ sub ParseOptionSpec ($$) {
 	$dest = $dest eq '@' ? CTL_DEST_ARRAY
 	  : $dest eq '%' ? CTL_DEST_HASH : CTL_DEST_SCALAR;
 	# Fields are hard-wired here.
-	$entry = [$type,$orig,$def eq '+' ? undef : $def,
+	$entry = [$type,$orig,$def eq '+' ? Mu : $def,
 		  $dest,0,1];
     }
     else {
 	my ($mand, $type, $dest) =
 	  $spec ~~ m:P5 /^([=:])([ionfs])([@%])?(\{(\d+)?(,)?(\d+)?\})?$/;
-	return (undef, "Cannot repeat while bundling: \"$opt\"\n")
+	return (Mu, "Cannot repeat while bundling: \"$opt\"\n")
 	  if $bundling && defined($4);
 	my ($mi, $cm, $ma) = ($5, $6, $7);
-	return (undef, "{0} is useless in option spec: \"$opt\"\n")
+	return (Mu, "{0} is useless in option spec: \"$opt\"\n")
 	  if defined($mi) && !$mi && !defined($ma) && !defined($cm);
 
 	$type = 'i' if $type eq 'n';
@@ -884,13 +880,13 @@ sub ParseOptionSpec ($$) {
 	$mand = $mi ? '=' : ':';
 	# Adjust maxargs.
 	$ma = $mi ? $mi : 1 unless defined $ma || defined $cm;
-	return (undef, "Max must be greater than zero in option spec: \"$opt\"\n")
+	return (Mu, "Max must be greater than zero in option spec: \"$opt\"\n")
 	  if defined($ma) && !$ma;
-	return (undef, "Max less than min in option spec: \"$opt\"\n")
+	return (Mu, "Max less than min in option spec: \"$opt\"\n")
 	  if defined($ma) && $ma < $mi;
 
 	# Fields are hard-wired here.
-	$entry = [$type,$orig,undef,$dest,$mi,$ma||-1];
+	$entry = [$type,$orig,Mu,$dest,$mi,$ma||-1];
     }
 
     # Process all names. First is canonical, the rest are aliases.
@@ -984,8 +980,8 @@ sub FindOption ($$$$$) {
 	    print STDERR ("=> $starter$tryopt unbundled from ",
 			  "$starter$tryopt$rest\n") if $debug;
 	    # Whatever remains may not be considered an option.
-	    $optarg = $rest eq '' ? undef : $rest;
-	    $rest = undef;
+	    $optarg = $rest eq '' ? Mu : $rest;
+	    $rest = Mu;
 	}
 
 	# Split off a single letter and leave the rest for
@@ -998,7 +994,7 @@ sub FindOption ($$$$$) {
 	    $tryopt = lc ($tryopt) if $ignorecase > 1;
 	    print STDERR ("=> $starter$tryopt unbundled from ",
 			  "$starter$tryopt$rest\n") if $debug;
-	    $rest = undef unless $rest ne '';
+	    $rest = Mu unless $rest ne '';
 	}
     }
 
@@ -1041,7 +1037,7 @@ sub FindOption ($$$$$) {
 		warn ("Option ", $opt, " is ambiguous (",
 		      join(", ", @hits), ")\n");
 		$error++;
-		return (1, undef);
+		return (1, Mu);
 	    }
 	    @hits = keys(%hit);
 	}
@@ -1076,7 +1072,7 @@ sub FindOption ($$$$$) {
 	    warn ("Unknown option: ", $opt, "\n");
 	}
 	$error++;
-	return (1, undef);
+	return (1, Mu);
     }
     # Apparently valid.
     $opt = $tryopt;
@@ -1094,8 +1090,8 @@ sub FindOption ($$$$$) {
 	    return (0) if $passthrough;
 	    warn ("Option ", $opt, " does not take an argument\n");
 	    $error++;
-	    undef $opt;
-	    undef $optarg if $bundling_values;
+	    $opt = Mu;
+	    $optarg -Mu if $bundling_values;
 	}
 	elsif ( $type eq '' || $type eq '+' ) {
 	    # Supply explicit value.
@@ -1128,7 +1124,7 @@ sub FindOption ($$$$$) {
 	    return (0) if $passthrough;
 	    warn ("Option ", $opt, " requires an argument\n");
 	    $error++;
-	    return (1, undef);
+	    return (1, Mu);
 	}
 	if ( $type eq 'I' ) {
 	    # Fake incremental type.
@@ -1150,13 +1146,13 @@ sub FindOption ($$$$$) {
     if ($ctl.[CTL_DEST] == CTL_DEST_HASH && defined $arg) {
 	($key, $arg) = ($arg ~~ m:P5 /^([^=]*)=(.*)$/s) ? ($1, $2)
 	  : ($arg, defined($ctl.[CTL_DEFAULT]) ? $ctl.[CTL_DEFAULT] :
-	     ($mand ? undef : ($type eq 's' ? "" : 1)));
+	     ($mand ? Mu : ($type eq 's' ? "" : 1)));
 	if (! defined $arg) {
 	    warn ("Option $opt, key \"$key\", requires a value\n");
 	    $error++;
 	    # Push back.
 	    unshift (@$argv, $starter.$rest) if defined $rest;
-	    return (1, undef);
+	    return (1, Mu);
 	}
     }
 
@@ -1218,7 +1214,7 @@ sub FindOption ($$$$$) {
 		$error++;
 		# Push back.
 		unshift (@$argv, $starter.$rest) if defined $rest;
-		return (1, undef);
+		return (1, Mu);
 	    }
 	    else {
 		# Push back.
@@ -1259,7 +1255,7 @@ sub FindOption ($$$$$) {
 		$error++;
 		# Push back.
 		unshift (@$argv, $starter.$rest) if defined $rest;
-		return (1, undef);
+		return (1, Mu);
 	    }
 	    else {
 		# Push back.
