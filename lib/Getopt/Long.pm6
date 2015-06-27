@@ -10,58 +10,60 @@
 
 ################ Module Preamble ################
 
-package Getopt::Long;
+class Getopt::Long;
 
-use 5.004;
+#use 5.004;
 
-use strict;
+#use strict;
 
-use vars qw($VERSION);
+our $VERSION;
 $VERSION        =  2.47;
 # For testing versions only.
-use vars qw($VERSION_STRING);
+our $VERSION_STRING;
 $VERSION_STRING = "2.47";
 
-use Exporter;
-use vars qw(@ISA @EXPORT @EXPORT_OK);
-@ISA = qw(Exporter);
+#use Exporter;
+#use vars qw(@ISA @EXPORT @EXPORT_OK);
+#@ISA = qw(Exporter);
 
 # Exported subroutines.
-sub GetOptions(@);		# always
-sub GetOptionsFromArray(@);	# on demand
-sub GetOptionsFromString(@);	# on demand
-sub Configure(@);		# on demand
-sub HelpMessage(@);		# on demand
-sub VersionMessage(@);		# in demand
+sub GetOptions {...};		# always
+sub GetOptionsFromArray  {...};	# on demand
+sub GetOptionsFromString  {...};	# on demand
+sub Configure  {...};		# on demand
+sub HelpMessage  {...};		# on demand
+sub VersionMessage  {...};		# in demand
 
 BEGIN {
     # Init immediately so their contents can be used in the 'use vars' below.
-    @EXPORT    = qw(&GetOptions $REQUIRE_ORDER $PERMUTE $RETURN_IN_ORDER);
-    @EXPORT_OK = qw(&HelpMessage &VersionMessage &Configure
-		    &GetOptionsFromArray &GetOptionsFromString);
+ #   @EXPORT    = qw(&GetOptions $REQUIRE_ORDER $PERMUTE $RETURN_IN_ORDER);
+  #  @EXPORT_OK = qw(&HelpMessage &VersionMessage &Configure
+#		    &GetOptionsFromArray &GetOptionsFromString);
 }
 
+our ($REQUIRE_ORDER,$PERMUTE,$RETURN_IN_ORDER);
+
 # User visible variables.
-use vars @EXPORT, @EXPORT_OK;
-use vars qw($error $debug $major_version $minor_version);
+#use vars @EXPORT, @EXPORT_OK;
+our ($error,$debug,$major_version,$minor_version);
 # Deprecated visible variables.
-use vars qw($autoabbrev $getopt_compat $ignorecase $bundling $order
+our ($autoabbrev,$getopt_compat,$ignorecase,$bundling,$order,
 	    $passthrough);
 # Official invisible variables.
-use vars qw($genprefix $caller $gnu_compat $auto_help $auto_version $longprefix);
+our ($genprefix,$caller,$gnu_compat,$auto_help,$auto_version,$longprefix);
 
 # Really invisible variables.
 my $bundling_values;
 
 # Public subroutines.
-sub config(@);			# deprecated name
+sub config {};			# deprecated name
 
 # Private subroutines.
-sub ConfigDefaults();
-sub ParseOptionSpec($$);
-sub OptCtl($);
-sub FindOption($$$$$);
-sub ValidValue ($$$$$);
+#sub ConfigDefaults()   {...};
+sub ParseOptionSpec  {...};
+sub OptCtl  {...};
+sub FindOption  {...};
+sub ValidValue   {...};
 
 ################ Local Variables ################
 
@@ -74,7 +76,7 @@ my $requested_version = 0;
 
 sub ConfigDefaults() {
     # Handle POSIX compliancy.
-    if ( defined $ENV{"POSIXLY_CORRECT"} ) {
+    if ( defined $*ENV{"POSIXLY_CORRECT"} ) {
 	$genprefix = "(--|-)";
 	$autoabbrev = 0;		# no automatic abbrev of options
 	$bundling = 0;			# no bundling of single letter switches
@@ -98,40 +100,41 @@ sub ConfigDefaults() {
     $bundling_values = 0;	# no bundling of values
 }
 
-# Override import.
-sub import {
-    my $pkg = shift;		# package
-    my @syms = ();		# symbols to import
-    my @config = ();		# configuration
-    my $dest = \@syms;		# symbols first
-    for ( @_ ) {
-	if ( $_ eq ':config' ) {
-	    $dest = \@config;	# config next
-	    next;
-	}
-	push(@$dest, $_);	# push
-    }
-    # Hide one level and call super.
-    local $Exporter::ExportLevel = 1;
-    push(@syms, qw(&GetOptions)) if @syms; # always export GetOptions
-    $requested_version = 0;
-    $pkg->SUPER::import(@syms);
-    # And configure.
-    Configure(@config) if @config;
-}
+## Override import.
+#sub import {
+#    my $pkg = shift;		# package
+#    my @syms = ();		# symbols to import
+#    my @config = ();		# configuration
+#    my $dest = \@syms;		# symbols first
+#    for ( @_ ) {
+#	if ( $_ eq ':config' ) {
+#	    $dest = \@config;	# config next
+#	    next;
+#	}
+#	push(@$dest, $_);	# push
+#    }
+##     Hide one level and call super.
+#    local $Exporter::ExportLevel = 1;
+#    push(@syms, qw(&GetOptions)) if @syms; # always export GetOptions
+#    $requested_version = 0;
+#    $pkg->SUPER::import(@syms);
+##     And configure.
+#    Configure(@config) if @config;
+#}
 
 ################ Initialization ################
 
 # Values for $order. See GNU getopt.c for details.
 ($REQUIRE_ORDER, $PERMUTE, $RETURN_IN_ORDER) = (0..2);
 # Version major/minor numbers.
-($major_version, $minor_version) = $VERSION =~ /^(\d+)\.(\d+)/;
+($major_version, $minor_version) = $VERSION ~~ m:P5 /^(\d+)\.(\d+)/;
 
 ConfigDefaults();
 
 ################ OO Interface ################
 
-package Getopt::Long::Parser;
+class Getopt::Long::Parser
+{
 
 # Store a copy of the default configuration. Since ConfigDefaults has
 # just been called, what we get from Configure is the default.
@@ -150,10 +153,10 @@ sub new {
     bless ($self, $class);
 
     # Process config attributes.
-    if ( defined $atts{config} ) {
-	my $save = Getopt::Long::Configure ($default_config, @{$atts{config}});
+    if ( defined %atts{config} ) {
+	my $save = Getopt::Long::Configure ($default_config, @{%atts{config}});
 	$self->{settings} = Getopt::Long::Configure ($save);
-	delete ($atts{config});
+	delete (%atts{config});
     }
     # Else use default config.
     else {
@@ -198,7 +201,7 @@ sub getoptionsfromarray {
 	# Locally set exception handler to default, otherwise it will
 	# be called implicitly here, and again explicitly when we try
 	# to deliver the messages.
-	local ($SIG{__DIE__}) = 'DEFAULT';
+	local (%SIG{__DIE__}) = 'DEFAULT';
 	$ret = Getopt::Long::GetOptionsFromArray (@_);
     };
 
@@ -209,8 +212,9 @@ sub getoptionsfromarray {
     die ($@) if $@;
     return $ret;
 }
-
-package Getopt::Long;
+}
+class Getopt::Long
+{
 
 ################ Back to Normal ################
 
@@ -338,13 +342,13 @@ sub GetOptionsFromArray(@) {
     # See if the first element of the optionlist contains option
     # starter characters.
     # Be careful not to interpret '<>' as option starters.
-    if ( @optionlist && $optionlist[0] =~ /^\W+$/
+    if ( @optionlist && $optionlist[0] ~~ m:P5 /^\W+$/
 	 && !($optionlist[0] eq '<>'
 	      && @optionlist > 0
 	      && ref($optionlist[1])) ) {
 	$prefix = shift (@optionlist);
 	# Turn into regexp. Needs to be parenthesized!
-	$prefix =~ s/(\W)/\\$1/g;
+	$prefix ~~ m:P5 s/(\W)/\\$1/g;
 	$prefix = "([" . $prefix . "])";
 	print STDERR ("=> prefix=\"$prefix\"\n") if $debug;
     }
@@ -360,7 +364,7 @@ sub GetOptionsFromArray(@) {
 	}
 
 	# Strip leading prefix so people can specify "--foo=i" if they like.
-	$opt = $+ if $opt =~ /^$prefix+(.*)$/s;
+	$opt = $+ if $opt ~~ m:P5 /^$prefix+(.*)$/s;
 
 	if ( $opt eq '<>' ) {
 	    if ( (defined $userlinkage)
@@ -377,7 +381,7 @@ sub GetOptionsFromArray(@) {
 		  if @optionlist && ref($optionlist[0]);
 		next;
 	    }
-	    $linkage{'<>'} = shift (@optionlist);
+	    %linkage{'<>'} = shift (@optionlist);
 	    next;
 	}
 
@@ -414,20 +418,20 @@ sub GetOptionsFromArray(@) {
 	if ( @optionlist > 0 && ref($optionlist[0]) ) {
 	    print STDERR ("=> link \"$orig\" to $optionlist[0]\n")
 		if $debug;
-	    my $rl = ref($linkage{$orig} = shift (@optionlist));
+	    my $rl = ref(%linkage{$orig} = shift (@optionlist));
 
 	    if ( $rl eq "ARRAY" ) {
-		$opctl{$name}[CTL_DEST] = CTL_DEST_ARRAY;
+		%opctl{$name}[CTL_DEST] = CTL_DEST_ARRAY;
 	    }
 	    elsif ( $rl eq "HASH" ) {
-		$opctl{$name}[CTL_DEST] = CTL_DEST_HASH;
+		%opctl{$name}[CTL_DEST] = CTL_DEST_HASH;
 	    }
 	    elsif ( $rl eq "SCALAR" || $rl eq "REF" ) {
-#		if ( $opctl{$name}[CTL_DEST] == CTL_DEST_ARRAY ) {
-#		    my $t = $linkage{$orig};
-#		    $$t = $linkage{$orig} = [];
+#		if ( %opctl{$name}[CTL_DEST] == CTL_DEST_ARRAY ) {
+#		    my $t = %linkage{$orig};
+#		    $$t = %linkage{$orig} = [];
 #		}
-#		elsif ( $opctl{$name}[CTL_DEST] == CTL_DEST_HASH ) {
+#		elsif ( %opctl{$name}[CTL_DEST] == CTL_DEST_HASH ) {
 #		}
 #		else {
 		    # Ok.
@@ -444,27 +448,27 @@ sub GetOptionsFromArray(@) {
 	    # Link to global $opt_XXX variable.
 	    # Make sure a valid perl identifier results.
 	    my $ov = $orig;
-	    $ov =~ s/\W/_/g;
-	    if ( $opctl{$name}[CTL_DEST] == CTL_DEST_ARRAY ) {
+	    $ov ~~ m:P5 s/\W/_/g;
+	    if ( %opctl{$name}[CTL_DEST] == CTL_DEST_ARRAY ) {
 		print STDERR ("=> link \"$orig\" to \@$pkg","::opt_$ov\n")
 		    if $debug;
-		eval ("\$linkage{\$orig} = \\\@".$pkg."::opt_$ov;");
+		eval ("\%linkage{\$orig} = \\\@".$pkg."::opt_$ov;");
 	    }
-	    elsif ( $opctl{$name}[CTL_DEST] == CTL_DEST_HASH ) {
+	    elsif ( %opctl{$name}[CTL_DEST] == CTL_DEST_HASH ) {
 		print STDERR ("=> link \"$orig\" to \%$pkg","::opt_$ov\n")
 		    if $debug;
-		eval ("\$linkage{\$orig} = \\\%".$pkg."::opt_$ov;");
+		eval ("\%linkage{\$orig} = \\\%".$pkg."::opt_$ov;");
 	    }
 	    else {
 		print STDERR ("=> link \"$orig\" to \$$pkg","::opt_$ov\n")
 		    if $debug;
-		eval ("\$linkage{\$orig} = \\\$".$pkg."::opt_$ov;");
+		eval ("\%linkage{\$orig} = \\\$".$pkg."::opt_$ov;");
 	    }
 	}
 
-	if ( $opctl{$name}[CTL_TYPE] eq 'I'
-	     && ( $opctl{$name}[CTL_DEST] == CTL_DEST_ARRAY
-		  || $opctl{$name}[CTL_DEST] == CTL_DEST_HASH )
+	if ( %opctl{$name}[CTL_TYPE] eq 'I'
+	     && ( %opctl{$name}[CTL_DEST] == CTL_DEST_ARRAY
+		  || %opctl{$name}[CTL_DEST] == CTL_DEST_HASH )
 	   ) {
 	    $error .= "Invalid option linkage for \"$opt\"\n";
 	}
@@ -480,16 +484,16 @@ sub GetOptionsFromArray(@) {
 
     # Supply --version and --help support, if needed and allowed.
     if ( defined($auto_version) ? $auto_version : ($requested_version >= 2.3203) ) {
-	if ( !defined($opctl{version}) ) {
-	    $opctl{version} = ['','version',0,CTL_DEST_CODE,undef];
-	    $linkage{version} = \&VersionMessage;
+	if ( !defined(%opctl{version}) ) {
+	    %opctl{version} = ['','version',0,CTL_DEST_CODE,undef];
+	    %linkage{version} = \&VersionMessage;
 	}
 	$auto_version = 1;
     }
     if ( defined($auto_help) ? $auto_help : ($requested_version >= 2.3203) ) {
-	if ( !defined($opctl{help}) && !defined($opctl{'?'}) ) {
-	    $opctl{help} = $opctl{'?'} = ['','help',0,CTL_DEST_CODE,undef];
-	    $linkage{help} = \&HelpMessage;
+	if ( !defined(%opctl{help}) && !defined(%opctl{'?'}) ) {
+	    %opctl{help} = %opctl{'?'} = ['','help',0,CTL_DEST_CODE,undef];
+	    %linkage{help} = \&HelpMessage;
 	}
 	$auto_help = 1;
     }
@@ -499,7 +503,7 @@ sub GetOptionsFromArray(@) {
 	my ($arrow, $k, $v);
 	$arrow = "=> ";
 	while ( ($k,$v) = each(%opctl) ) {
-	    print STDERR ($arrow, "\$opctl{$k} = $v ", OptCtl($v), "\n");
+	    print STDERR ($arrow, "\%opctl{$k} = $v ", OptCtl($v), "\n");
 	    $arrow = "   ";
 	}
     }
@@ -541,68 +545,68 @@ sub GetOptionsFromArray(@) {
 		$opt = $ctl->[CTL_CNAME];
 		print STDERR ("\"$ctl->[CTL_CNAME]\"\n") if $debug;
 
-		if ( defined $linkage{$opt} ) {
-		    print STDERR ("=> ref(\$L{$opt}) -> ",
-				  ref($linkage{$opt}), "\n") if $debug;
+		if ( defined %linkage{$opt} ) {
+		    print STDERR ("=> ref(\%L{$opt}) -> ",
+				  ref(%linkage{$opt}), "\n") if $debug;
 
-		    if ( ref($linkage{$opt}) eq 'SCALAR'
-			 || ref($linkage{$opt}) eq 'REF' ) {
+		    if ( ref(%linkage{$opt}) eq 'SCALAR'
+			 || ref(%linkage{$opt}) eq 'REF' ) {
 			if ( $ctl->[CTL_TYPE] eq '+' ) {
-			    print STDERR ("=> \$\$L{$opt} += \"$arg\"\n")
+			    print STDERR ("=> \$\%L{$opt} += \"$arg\"\n")
 			      if $debug;
-			    if ( defined ${$linkage{$opt}} ) {
-			        ${$linkage{$opt}} += $arg;
+			    if ( defined ${%linkage{$opt}} ) {
+			        ${%linkage{$opt}} += $arg;
 			    }
 		            else {
-			        ${$linkage{$opt}} = $arg;
+			        ${%linkage{$opt}} = $arg;
 			    }
 			}
 			elsif ( $ctl->[CTL_DEST] == CTL_DEST_ARRAY ) {
-			    print STDERR ("=> ref(\$L{$opt}) auto-vivified",
+			    print STDERR ("=> ref(\%L{$opt}) auto-vivified",
 					  " to ARRAY\n")
 			      if $debug;
-			    my $t = $linkage{$opt};
-			    $$t = $linkage{$opt} = [];
-			    print STDERR ("=> push(\@{\$L{$opt}, \"$arg\")\n")
+			    my $t = %linkage{$opt};
+			    $$t = %linkage{$opt} = [];
+			    print STDERR ("=> push(\@{\%L{$opt}, \"$arg\")\n")
 			      if $debug;
-			    push (@{$linkage{$opt}}, $arg);
+			    push (@{%linkage{$opt}}, $arg);
 			}
 			elsif ( $ctl->[CTL_DEST] == CTL_DEST_HASH ) {
-			    print STDERR ("=> ref(\$L{$opt}) auto-vivified",
+			    print STDERR ("=> ref(\%L{$opt}) auto-vivified",
 					  " to HASH\n")
 			      if $debug;
-			    my $t = $linkage{$opt};
-			    $$t = $linkage{$opt} = {};
-			    print STDERR ("=> \$\$L{$opt}->{$key} = \"$arg\"\n")
+			    my $t = %linkage{$opt};
+			    $$t = %linkage{$opt} = {};
+			    print STDERR ("=> \$\%L{$opt}->{$key} = \"$arg\"\n")
 			      if $debug;
-			    $linkage{$opt}->{$key} = $arg;
+			    %linkage{$opt}->{$key} = $arg;
 			}
 			else {
-			    print STDERR ("=> \$\$L{$opt} = \"$arg\"\n")
+			    print STDERR ("=> \$\%L{$opt} = \"$arg\"\n")
 			      if $debug;
-			    ${$linkage{$opt}} = $arg;
+			    ${%linkage{$opt}} = $arg;
 		        }
 		    }
-		    elsif ( ref($linkage{$opt}) eq 'ARRAY' ) {
-			print STDERR ("=> push(\@{\$L{$opt}, \"$arg\")\n")
+		    elsif ( ref(%linkage{$opt}) eq 'ARRAY' ) {
+			print STDERR ("=> push(\@{\%L{$opt}, \"$arg\")\n")
 			    if $debug;
-			push (@{$linkage{$opt}}, $arg);
+			push (@{%linkage{$opt}}, $arg);
 		    }
-		    elsif ( ref($linkage{$opt}) eq 'HASH' ) {
-			print STDERR ("=> \$\$L{$opt}->{$key} = \"$arg\"\n")
+		    elsif ( ref(%linkage{$opt}) eq 'HASH' ) {
+			print STDERR ("=> \$\%L{$opt}->{$key} = \"$arg\"\n")
 			    if $debug;
-			$linkage{$opt}->{$key} = $arg;
+			%linkage{$opt}->{$key} = $arg;
 		    }
-		    elsif ( ref($linkage{$opt}) eq 'CODE' ) {
+		    elsif ( ref(%linkage{$opt}) eq 'CODE' ) {
 			print STDERR ("=> &L{$opt}(\"$opt\"",
 				      $ctl->[CTL_DEST] == CTL_DEST_HASH ? ", \"$key\"" : "",
 				      ", \"$arg\")\n")
 			    if $debug;
 			my $eval_error = do {
 			    local $@;
-			    local $SIG{__DIE__}  = 'DEFAULT';
+			    local %SIG{__DIE__}  = 'DEFAULT';
 			    eval {
-				&{$linkage{$opt}}
+				&{%linkage{$opt}}
 				  (Getopt::Long::CallBack->new
 				   (name    => $opt,
 				    ctl     => $ctl,
@@ -617,8 +621,8 @@ sub GetOptionsFromArray(@) {
 			};
 			print STDERR ("=> die($eval_error)\n")
 			  if $debug && $eval_error ne '';
-			if ( $eval_error =~ /^!/ ) {
-			    if ( $eval_error =~ /^!FINISH\b/ ) {
+			if ( $eval_error ~~ m:P5 /^!/ ) {
+			    if ( $eval_error ~~ m:P5 /^!FINISH\b/ ) {
 				$goon = 0;
 			    }
 			}
@@ -628,7 +632,7 @@ sub GetOptionsFromArray(@) {
 			}
 		    }
 		    else {
-			print STDERR ("Invalid REF type \"", ref($linkage{$opt}),
+			print STDERR ("Invalid REF type \"", ref(%linkage{$opt}),
 				      "\" in linkage\n");
 			die("Getopt::Long -- internal error!\n");
 		    }
@@ -636,31 +640,31 @@ sub GetOptionsFromArray(@) {
 		# No entry in linkage means entry in userlinkage.
 		elsif ( $ctl->[CTL_DEST] == CTL_DEST_ARRAY ) {
 		    if ( defined $userlinkage->{$opt} ) {
-			print STDERR ("=> push(\@{\$L{$opt}}, \"$arg\")\n")
+			print STDERR ("=> push(\@{\%L{$opt}}, \"$arg\")\n")
 			    if $debug;
 			push (@{$userlinkage->{$opt}}, $arg);
 		    }
 		    else {
-			print STDERR ("=>\$L{$opt} = [\"$arg\"]\n")
+			print STDERR ("=>\%L{$opt} = [\"$arg\"]\n")
 			    if $debug;
 			$userlinkage->{$opt} = [$arg];
 		    }
 		}
 		elsif ( $ctl->[CTL_DEST] == CTL_DEST_HASH ) {
 		    if ( defined $userlinkage->{$opt} ) {
-			print STDERR ("=> \$L{$opt}->{$key} = \"$arg\"\n")
+			print STDERR ("=> \%L{$opt}->{$key} = \"$arg\"\n")
 			    if $debug;
 			$userlinkage->{$opt}->{$key} = $arg;
 		    }
 		    else {
-			print STDERR ("=>\$L{$opt} = {$key => \"$arg\"}\n")
+			print STDERR ("=>\%L{$opt} = {$key => \"$arg\"}\n")
 			    if $debug;
 			$userlinkage->{$opt} = {$key => $arg};
 		    }
 		}
 		else {
 		    if ( $ctl->[CTL_TYPE] eq '+' ) {
-			print STDERR ("=> \$L{$opt} += \"$arg\"\n")
+			print STDERR ("=> \%L{$opt} += \"$arg\"\n")
 			  if $debug;
 			if ( defined $userlinkage->{$opt} ) {
 			    $userlinkage->{$opt} += $arg;
@@ -670,7 +674,7 @@ sub GetOptionsFromArray(@) {
 			}
 		    }
 		    else {
-			print STDERR ("=>\$L{$opt} = \"$arg\"\n") if $debug;
+			print STDERR ("=>\%L{$opt} = \"$arg\"\n") if $debug;
 			$userlinkage->{$opt} = $arg;
 		    }
 		}
@@ -684,13 +688,13 @@ sub GetOptionsFromArray(@) {
 		    if ( @$argv ) {
 			if ( ValidValue($ctl, $argv->[0], 1, $argend, $prefix) ) {
 			    $arg = shift(@$argv);
-			    if ( $ctl->[CTL_TYPE] =~ /^[iIo]$/ ) {
-				$arg =~ tr/_//d;
-				$arg = $ctl->[CTL_TYPE] eq 'o' && $arg =~ /^0/
+			    if ( $ctl->[CTL_TYPE] ~~ m:P5 /^[iIo]$/ ) {
+				$arg ~~ m:P5 tr/_//d;
+				$arg = $ctl->[CTL_TYPE] eq 'o' && $arg ~~ m:P5 /^0/
 				  ? oct($arg)
 				  : 0+$arg
 			    }
-			    ($key,$arg) = $arg =~ /^([^=]+)=(.*)/
+			    ($key,$arg) = $arg ~~ m:P5 /^([^=]+)=(.*)/
 			      if $ctl->[CTL_DEST] == CTL_DEST_HASH;
 			    next;
 			}
@@ -706,13 +710,13 @@ sub GetOptionsFromArray(@) {
 		# Any more args?
 		if ( @$argv && ValidValue($ctl, $argv->[0], 0, $argend, $prefix) ) {
 		    $arg = shift(@$argv);
-		    if ( $ctl->[CTL_TYPE] =~ /^[iIo]$/ ) {
-			$arg =~ tr/_//d;
-			$arg = $ctl->[CTL_TYPE] eq 'o' && $arg =~ /^0/
+		    if ( $ctl->[CTL_TYPE] ~~ m:P5 /^[iIo]$/ ) {
+			$arg ~~ m:P5 tr/_//d;
+			$arg = $ctl->[CTL_TYPE] eq 'o' && $arg ~~ m:P5 /^0/
 			  ? oct($arg)
 			  : 0+$arg
 		    }
-		    ($key,$arg) = $arg =~ /^([^=]+)=(.*)/
+		    ($key,$arg) = $arg ~~ m:P5 /^([^=]+)=(.*)/
 		      if $ctl->[CTL_DEST] == CTL_DEST_HASH;
 		    next;
 		}
@@ -723,12 +727,12 @@ sub GetOptionsFromArray(@) {
 	elsif ( $order == $PERMUTE ) {
 	    # Try non-options call-back.
 	    my $cb;
-	    if ( defined ($cb = $linkage{'<>'}) ) {
+	    if ( defined ($cb = %linkage{'<>'}) ) {
 		print STDERR ("=> &L{$tryopt}(\"$tryopt\")\n")
 		  if $debug;
 		my $eval_error = do {
 		    local $@;
-		    local $SIG{__DIE__}  = 'DEFAULT';
+		    local %SIG{__DIE__}  = 'DEFAULT';
 		    eval {
 			# The arg to <> cannot be the CallBack object
 			# since it may be passed to other modules that
@@ -740,8 +744,8 @@ sub GetOptionsFromArray(@) {
 		};
 		print STDERR ("=> die($eval_error)\n")
 		  if $debug && $eval_error ne '';
-		if ( $eval_error =~ /^!/ ) {
-		    if ( $eval_error =~ /^!FINISH\b/ ) {
+		if ( $eval_error ~~ m:P5 /^!/ ) {
+		    if ( $eval_error ~~ m:P5 /^!FINISH\b/ ) {
 			$goon = 0;
 		    }
 		}
@@ -850,7 +854,7 @@ sub ParseOptionSpec ($$) {
 	# Fields are hard-wired here.
 	$entry = [$spec,$orig,undef,CTL_DEST_SCALAR,0,0];
     }
-    elsif ( $spec =~ /^:(-?\d+|\+)([@%])?$/ ) {
+    elsif ( $spec ~~ m:P5 /^:(-?\d+|\+)([@%])?$/ ) {
 	my $def = $1;
 	my $dest = $2;
 	my $type = $def eq '+' ? 'I' : 'i';
@@ -863,7 +867,7 @@ sub ParseOptionSpec ($$) {
     }
     else {
 	my ($mand, $type, $dest) =
-	  $spec =~ /^([=:])([ionfs])([@%])?(\{(\d+)?(,)?(\d+)?\})?$/;
+	  $spec ~~ m:P5 /^([=:])([ionfs])([@%])?(\{(\d+)?(,)?(\d+)?\})?$/;
 	return (undef, "Cannot repeat while bundling: \"$opt\"\n")
 	  if $bundling && defined($4);
 	my ($mi, $cm, $ma) = ($5, $6, $7);
@@ -931,7 +935,7 @@ sub FindOption ($$$$$) {
     print STDERR ("=> find \"$opt\"\n") if $debug;
 
     return (0) unless defined($opt);
-    return (0) unless $opt =~ /^($prefix)(.*)$/s;
+    return (0) unless $opt ~~ m:P5 /^($prefix)(.*)$/s;
     return (0) if $opt eq "-" && !defined $opctl->{''};
 
     $opt = substr( $opt, length($1) ); # retain taintedness
@@ -944,7 +948,7 @@ sub FindOption ($$$$$) {
 
     # If it is a long option, it may include the value.
     # With getopt_compat, only if not bundling.
-    if ( ($starter=~/^$longprefix$/
+    if ( ($starter~~ m:P5/^$longprefix$/
 	  || ($getopt_compat && ($bundling == 0 || $bundling == 2)))
 	 && (my $oppos = index($opt, '=', 1)) > 0) {
 	my $optorg = $opt;
@@ -1020,15 +1024,15 @@ sub FindOption ($$$$$) {
 		my $hit = $opctl->{$_}->[CTL_CNAME]
 		  if defined $opctl->{$_}->[CTL_CNAME];
 		$hit = "no" . $hit if $opctl->{$_}->[CTL_TYPE] eq '!';
-		$hit{$hit} = 1;
+		%hit{$hit} = 1;
 	    }
 	    # Remove auto-supplied options (version, help).
 	    if ( keys(%hit) == 2 ) {
-		if ( $auto_version && exists($hit{version}) ) {
-		    delete $hit{version};
+		if ( $auto_version && exists(%hit{version}) ) {
+		    delete %hit{version};
 		}
-		elsif ( $auto_help && exists($hit{help}) ) {
-		    delete $hit{help};
+		elsif ( $auto_help && exists(%hit{help}) ) {
+		    delete %hit{help};
 		}
 	    }
 	    # Now see if it really is ambiguous.
@@ -1098,7 +1102,7 @@ sub FindOption ($$$$$) {
 	    $arg = 1;
 	}
 	else {
-	    $opt =~ s/^no-?//i;	# strip NO prefix
+	    $opt ~~ m:P5 s/^no-?//i;	# strip NO prefix
 	    $arg = 0;		# supply explicit value
 	}
 	unshift (@$argv, $starter.$rest) if defined $rest;
@@ -1144,7 +1148,7 @@ sub FindOption ($$$$$) {
     # Get key if this is a "name=value" pair for a hash option.
     my $key;
     if ($ctl->[CTL_DEST] == CTL_DEST_HASH && defined $arg) {
-	($key, $arg) = ($arg =~ /^([^=]*)=(.*)$/s) ? ($1, $2)
+	($key, $arg) = ($arg ~~ m:P5 /^([^=]*)=(.*)$/s) ? ($1, $2)
 	  : ($arg, defined($ctl->[CTL_DEFAULT]) ? $ctl->[CTL_DEFAULT] :
 	     ($mand ? undef : ($type eq 's' ? "" : 1)));
 	if (! defined $arg) {
@@ -1175,7 +1179,7 @@ sub FindOption ($$$$$) {
 
 	# Check for option or option list terminator.
 	if ($arg eq $argend ||
-	    $arg =~ /^$prefix.+/) {
+	    $arg ~~ m:P5 /^$prefix.+/) {
 	    # Push back.
 	    unshift (@$argv, $arg);
 	    # Supply empty value.
@@ -1190,15 +1194,15 @@ sub FindOption ($$$$$) {
 	my $o_valid = $type eq 'o' ? PAT_XINT : PAT_INT;
 
 	if ( $bundling && defined $rest
-	     && $rest =~ /^($key_valid)($o_valid)(.*)$/si ) {
+	     && $rest ~~ m:P5 /^($key_valid)($o_valid)(.*)$/si ) {
 	    ($key, $arg, $rest) = ($1, $2, $+);
 	    chop($key) if $key;
-	    $arg = ($type eq 'o' && $arg =~ /^0/) ? oct($arg) : 0+$arg;
+	    $arg = ($type eq 'o' && $arg ~~ m:P5 /^0/) ? oct($arg) : 0+$arg;
 	    unshift (@$argv, $starter.$rest) if defined $rest && $rest ne '';
 	}
-	elsif ( $arg =~ /^$o_valid$/si ) {
-	    $arg =~ tr/_//d;
-	    $arg = ($type eq 'o' && $arg =~ /^0/) ? oct($arg) : 0+$arg;
+	elsif ( $arg ~~ m:P5 /^$o_valid$/si ) {
+	    $arg ~~ m:P5 tr/_//d;
+	    $arg = ($type eq 'o' && $arg ~~ m:P5 /^0/) ? oct($arg) : 0+$arg;
 	}
 	else {
 	    if ( defined $optarg || $mand ) {
@@ -1234,14 +1238,14 @@ sub FindOption ($$$$$) {
     elsif ( $type eq 'f' ) { # real number, int is also ok
 	my $o_valid = PAT_FLOAT;
 	if ( $bundling && defined $rest &&
-	     $rest =~ /^($key_valid)($o_valid)(.*)$/s ) {
-	    $arg =~ tr/_//d;
+	     $rest ~~ m:P5 /^($key_valid)($o_valid)(.*)$/s ) {
+	    $arg ~~ m:P5 tr/_//d;
 	    ($key, $arg, $rest) = ($1, $2, $+);
 	    chop($key) if $key;
 	    unshift (@$argv, $starter.$rest) if defined $rest && $rest ne '';
 	}
-	elsif ( $arg =~ /^$o_valid$/ ) {
-	    $arg =~ tr/_//d;
+	elsif ( $arg ~~ m:P5 /^$o_valid$/ ) {
+	    $arg ~~ m:P5 tr/_//d;
 	}
 	else {
 	    if ( defined $optarg || $mand ) {
@@ -1275,7 +1279,7 @@ sub ValidValue ($$$$$) {
     my ($ctl, $arg, $mand, $argend, $prefix) = @_;
 
     if ( $ctl->[CTL_DEST] == CTL_DEST_HASH ) {
-	return 0 unless $arg =~ /[^=]+=(.*)/;
+	return 0 unless $arg ~~ m:P5 /[^=]+=(.*)/;
 	$arg = $1;
     }
 
@@ -1288,7 +1292,7 @@ sub ValidValue ($$$$$) {
 	return (1) if $arg eq "-";
 
 	# Check for option or option list terminator.
-	return 0 if $arg eq $argend || $arg =~ /^$prefix.+/;
+	return 0 if $arg eq $argend || $arg ~~ m:P5 /^$prefix.+/;
 	return 1;
     }
 
@@ -1297,12 +1301,12 @@ sub ValidValue ($$$$$) {
 	    || $type eq 'o' ) { # dec/oct/hex/bin value
 
 	my $o_valid = $type eq 'o' ? PAT_XINT : PAT_INT;
-	return $arg =~ /^$o_valid$/si;
+	return $arg ~~ m:P5 /^$o_valid$/si;
     }
 
     elsif ( $type eq 'f' ) { # real number, int is also ok
 	my $o_valid = PAT_FLOAT;
-	return $arg =~ /^$o_valid$/;
+	return $arg ~~ m:P5 /^$o_valid$/;
     }
     die("ValidValue: Cannot happen\n");
 }
@@ -1328,7 +1332,7 @@ sub Configure (@) {
     foreach $opt ( @options ) {
 	my $try = lc ($opt);
 	my $action = 1;
-	if ( $try =~ /^no_?(.*)$/s ) {
+	if ( $try ~~ m:P5 /^no_?(.*)$/s ) {
 	    $action = 0;
 	    $try = $+;
 	}
@@ -1336,8 +1340,8 @@ sub Configure (@) {
 	    ConfigDefaults ();
 	}
 	elsif ( ($try eq 'posix_default' or $try eq 'posix_defaults') ) {
-	    local $ENV{POSIXLY_CORRECT};
-	    $ENV{POSIXLY_CORRECT} = 1 if $action;
+	    local %ENV{POSIXLY_CORRECT};
+	    %ENV{POSIXLY_CORRECT} = 1 if $action;
 	    ConfigDefaults ();
 	}
 	elsif ( $try eq 'auto_abbrev' or $try eq 'autoabbrev' ) {
@@ -1360,10 +1364,10 @@ sub Configure (@) {
 	elsif ( $try eq 'gnu_compat' ) {
 	    $gnu_compat = $action;
 	}
-	elsif ( $try =~ /^(auto_?)?version$/ ) {
+	elsif ( $try ~~ m:P5 /^(auto_?)?version$/ ) {
 	    $auto_version = $action;
 	}
-	elsif ( $try =~ /^(auto_?)?help$/ ) {
+	elsif ( $try ~~ m:P5 /^(auto_?)?help$/ ) {
 	    $auto_help = $action;
 	}
 	elsif ( $try eq 'ignorecase' or $try eq 'ignore_case' ) {
@@ -1393,27 +1397,27 @@ sub Configure (@) {
 	elsif ( $try eq 'pass_through' or $try eq 'passthrough' ) {
 	    $passthrough = $action;
 	}
-	elsif ( $try =~ /^prefix=(.+)$/ && $action ) {
+	elsif ( $try ~~ m:P5 /^prefix=(.+)$/ && $action ) {
 	    $genprefix = $1;
 	    # Turn into regexp. Needs to be parenthesized!
 	    $genprefix = "(" . quotemeta($genprefix) . ")";
-	    eval { '' =~ /$genprefix/; };
+	    eval { '' ~~ m:P5 /$genprefix/; };
 	    die("Getopt::Long: invalid pattern \"$genprefix\"\n") if $@;
 	}
-	elsif ( $try =~ /^prefix_pattern=(.+)$/ && $action ) {
+	elsif ( $try ~~ m:P5 /^prefix_pattern=(.+)$/ && $action ) {
 	    $genprefix = $1;
 	    # Parenthesize if needed.
 	    $genprefix = "(" . $genprefix . ")"
-	      unless $genprefix =~ /^\(.*\)$/;
-	    eval { '' =~ m"$genprefix"; };
+	      unless $genprefix ~~ m:P5 /^\(.*\)$/;
+	    eval { '' ~~ m:P5 m"$genprefix"; };
 	    die("Getopt::Long: invalid pattern \"$genprefix\"\n") if $@;
 	}
-	elsif ( $try =~ /^long_prefix_pattern=(.+)$/ && $action ) {
+	elsif ( $try ~~ m:P5 /^long_prefix_pattern=(.+)$/ && $action ) {
 	    $longprefix = $1;
 	    # Parenthesize if needed.
 	    $longprefix = "(" . $longprefix . ")"
-	      unless $longprefix =~ /^\(.*\)$/;
-	    eval { '' =~ m"$longprefix"; };
+	      unless $longprefix ~~ m:P5 /^\(.*\)$/;
+	    eval { '' ~~ m:P5 m"$longprefix"; };
 	    die("Getopt::Long: invalid long prefix pattern \"$longprefix\"\n") if $@;
 	}
 	elsif ( $try eq 'debug' ) {
@@ -1505,7 +1509,7 @@ sub setup_pa_args($@) {
 	$pa->{-message} = $pa->{-msg};
 	delete($pa->{-msg});
     }
-    elsif ( $pa =~ /^-?\d+$/ ) {
+    elsif ( $pa ~~ m:P5 /^-?\d+$/ ) {
 	$pa = { -exitval => $pa };
     }
     else {
@@ -1523,8 +1527,9 @@ sub VERSION {
     $requested_version = $_[1];
     shift->SUPER::VERSION(@_);
 }
-
-package Getopt::Long::CallBack;
+}
+class Getopt::Long::CallBack
+{
 
 sub new {
     my ($pkg, %atts) = @_;
@@ -1540,7 +1545,7 @@ use overload
   # Treat this object as an ordinary string for legacy API.
   '""'	   => \&name,
   fallback => 1;
-
+}
 1;
 
 ################ Documentation ################
