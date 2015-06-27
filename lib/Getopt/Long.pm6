@@ -76,7 +76,18 @@ my $requested_version = 0;
 
 ################ Resident subroutines ################
 
+sub quotemeta($s)
+{
+  my $o = $s;
+  $o~~s:P5:g/(\W)/\\$0/;
+  return $o;
+}
 
+sub ref($e)
+{
+  #return "" if ($e.WHAT eq "(Str)" || $e.WHAT eq "(Int)");
+  return substr($e.WHAT,1,-1);
+}
 
 sub ConfigDefaults() {
     # Handle POSIX compliancy.
@@ -162,7 +173,7 @@ sub new {
     if ( defined %atts{config} ) {
 	my $save = Getopt::Long::Configure ($default_config, @(%atts{config}));
 	$self.{settings} = Getopt::Long::Configure ($save);
-	delete (%atts{config});
+	%atts{config}:delete;
     }
     # Else use default config.
     else {
@@ -170,7 +181,7 @@ sub new {
     }
 
     if ( %atts ) {		# Oops
-	die(__PACKAGE__~": unhandled attributes: "~
+	die($?PACKAGE~": unhandled attributes: "~
 	    join(" ", sort(keys(%atts)))~"\n");
     }
 
@@ -272,16 +283,35 @@ sub GetOptions {
     # Shift in default array.
     unshift(@_, \@*ARGV);
     # Try to keep caller() and Carp consistent.
-    goto &GetOptionsFromArray;
+    GetOptionsFromArray(@_);
 }
 
-sub GetOptionsFromString {
+sub GetOptionsFromStringArray {
     my ($string) = shift;
     require Text::ParseWords;
     my $args = [ Text::ParseWords::shellwords($string) ];
     $caller ||= (caller)[0];	# current context
     my $ret = GetOptionsFromArray($args, @_);
-    return ( $ret, $args ) if wantarray;
+    return ( $ret, $args );# if wantarray; check this
+    if ( @$args ) {
+	$ret = 0;
+	warn("GetOptionsFromString: Excess data \"@$args\" in string \"$string\"\n");
+    }
+    $ret;
+}
+
+sub GetOptionsFromString {
+
+ die "GetOptionsFromString has been replaced by GetOptionsFromStringArray and GetOptionsFromStringSingle";
+}
+
+sub GetOptionsFromStringSingle {
+    my ($string) = shift;
+    require Text::ParseWords;
+    my $args = [ Text::ParseWords::shellwords($string) ];
+    $caller ||= (caller)[0];	# current context
+    my $ret = GetOptionsFromArray($args, @_);
+    
     if ( @$args ) {
 	$ret = 0;
 	warn("GetOptionsFromString: Excess data \"@$args\" in string \"$string\"\n");
@@ -371,7 +401,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 	if ( $opt eq '<>' ) {
 	    if ( (defined $userlinkage)
 		&& !(@optionlist > 0 && ref(@optionlist[0]))
-		&& (exists $userlinkage.{$opt})
+		&& ($userlinkage.{$opt}:exists)
 		&& ref($userlinkage.{$opt}) ) {
 		unshift (@optionlist, $userlinkage.{$opt});
 	    }
@@ -402,7 +432,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 	# the userlinkage if available.
 	if ( defined $userlinkage ) {
 	    unless ( @optionlist > 0 && ref(@optionlist[0]) ) {
-		if ( exists $userlinkage.{$orig} &&
+		if ( $userlinkage.{$orig}:exists &&
 		     ref($userlinkage.{$orig}) ) {
 		    print STDERR ("=> found userlinkage for \"$orig\": ",
 				  "$userlinkage.{$orig}\n")
@@ -454,17 +484,17 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 	    if ( %opctl{$name}[CTL_DEST] == CTL_DEST_ARRAY ) {
 		print STDERR ("=> link \"$orig\" to \@$pkg","::opt_$ov\n")
 		    if $debug;
-		eval ("\%linkage{\$orig} = \\\@"~$pkg~"::opt_$ov;");
+		EVAL ("\%linkage{\$orig} = \\\@"~$pkg~"::opt_$ov;");
 	    }
 	    elsif ( %opctl{$name}[CTL_DEST] == CTL_DEST_HASH ) {
 		print STDERR ("=> link \"$orig\" to \%$pkg","::opt_$ov\n")
 		    if $debug;
-		eval ("\%linkage{\$orig} = \\\%"~$pkg~"::opt_$ov;");
+		EVAL ("\%linkage{\$orig} = \\\%"~$pkg~"::opt_$ov;");
 	    }
 	    else {
 		print STDERR ("=> link \"$orig\" to \$$pkg"~"::opt_$ov\n")
 		    if $debug;
-		eval ("\%linkage{\$orig} = \\\$"~$pkg~"::opt_$ov;");
+		EVAL ("\%linkage{\$orig} = \\\$"~$pkg~"::opt_$ov;");
 	    }
 	}
 
@@ -608,7 +638,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
                            {
 			    temp $!;
 			   # local %SIG{__DIE__}  = 'DEFAULT';
-			    eval {
+			    EVAL {
 				&(%linkage{$opt})(Getopt::Long::CallBack.new(name    => $opt,
 				    ctl     => $ctl,
 				    opctl   => \%opctl,
@@ -682,7 +712,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 
 		$argcnt++;
 		last if $argcnt >= $ctl.[CTL_AMAX] && $ctl.[CTL_AMAX] != -1;
-		undef($arg);
+		$arg = Mu;
 
 		# Need more args?
 		if ( $argcnt < $ctl.[CTL_AMIN] ) {
@@ -901,7 +931,7 @@ sub ParseOptionSpec ($opt, $opctl) {
 	$_ = lc ($_)
 	  if $ignorecase > (($bundling && length($_) == 1) ?? 1 !! 0);
 
-	if ( exists $opctl.{$_} ) {
+	if ( $opctl.{$_}:exists ) {
 	    $dups ~= "Duplicate specification \"$opt\" for option \"$_\"\n";
 	}
 
@@ -1013,11 +1043,11 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	$opt = lc ($opt) if $ignorecase;
 	$tryopt = $opt;
 	# Turn option name into pattern.
-	my $pat = quotemeta ($opt);
+	my $pat = quotemeta($opt);
 	# Look up in option names.
 	my @hits = grep (/^$pat/, @names);
-	print STDERR ("=> ", scalar(@hits), " hits (@hits) with \"$pat\" ",
-		      "out of ", scalar(@names), "\n") if $debug;
+	print STDERR ("=> ", @hits.elems, " hits (@hits) with \"$pat\" ",
+		      "out of ", @names.elems, "\n") if $debug;
      
 	# Check for ambiguous results.
 	unless ( (@hits <= 1) || (@hits.grep($opt).elems == 1) ) {
@@ -1042,11 +1072,11 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
             
 	    # Remove auto-supplied options (version, help).
 	    if ( keys(%hit) == 2 ) {  
-		if ( $auto_version && exists(%hit{version}) ) {
-		    delete %hit{version};
+		if ( $auto_version && (%hit{version}:exists) ) {
+		    %hit{version}:delete;
 		}
-		elsif ( $auto_help && exists(%hit{help}) ) {
-		    delete %hit{help};
+		elsif ( $auto_help && (%hit{help} :exists)) {
+		    %hit{help}:delete;
 		}
 	    }   ; 
 	    # Now see if it really is ambiguous.
@@ -1409,9 +1439,10 @@ sub Configure (@options) { # check this
 	    ConfigDefaults ();
 	}
 	elsif ( ($try eq 'posix_default' or $try eq 'posix_defaults') ) {
-	    local %*ENV{POSIXLY_CORRECT};
-	    %*ENV{POSIXLY_CORRECT} = 1 if $action;
+	    my $v = %*ENV<POSIXLY_CORRECT>;
+	    %*ENV<POSIXLY_CORRECT> = 1 if $action;
 	    ConfigDefaults ();
+            %*ENV<POSIXLY_CORRECT> = $v;
 	}
 	elsif ( $try eq 'auto_abbrev' or $try eq 'autoabbrev' ) {
 	    $autoabbrev = $action;
@@ -1470,7 +1501,7 @@ sub Configure (@options) { # check this
 	    $genprefix = $1;
 	    # Turn into regexp. Needs to be parenthesized!
 	    $genprefix = "(" ~ quotemeta($genprefix) ~ ")";
-	    eval { '' ~~ m:P5 /$genprefix/; };
+	    EVAL { '' ~~ m:P5 /$genprefix/; };
 	    die("Getopt::Long: invalid pattern \"$genprefix\"\n") if $!;
 	}
 	elsif ( $try ~~ m:P5 /^prefix_pattern=(.+)$/ && $action ) {
@@ -1486,7 +1517,7 @@ sub Configure (@options) { # check this
 	    # Parenthesize if needed.
 	    $longprefix = "(" ~ $longprefix ~ ")"
 	      unless $longprefix ~~ m:P5 /^\(.*\)$/;
-	    eval { '' ~~ m:P5 "$longprefix"; };
+	    EVAL { '' ~~ m:P5 "$longprefix"; };
 	    die("Getopt::Long: invalid long prefix pattern \"$longprefix\"\n") if $!;
 	}
 	elsif ( $try eq 'debug' ) {
@@ -1525,7 +1556,7 @@ sub VersionMessage(@v) {
     print $fh: (defined($pa.{-message}) ?? $pa.{-message} !! (),
 	       $0, defined $v ?? " version $v" !! (),
 	       "\n",
-	       "(", __PACKAGE__, "::", "GetOptions",
+	       "(", $?PACKAGE, "::", "GetOptions",
 	       " version ",
 	       defined($Getopt::Long::VERSION_STRING)
 	         ?? $Getopt::Long::VERSION_STRING !! $VERSION, ";",
@@ -1578,7 +1609,7 @@ sub setup_pa_args { #($@)
     if ( UNIVERSAL::isa($pa, 'HASH') ) {
 	# Get rid of -msg vs. -message ambiguity.
 	$pa.{-message} = $pa.{-msg};
-	delete($pa.{-msg});
+	$pa.{-msg}:delete;
     }
     elsif ( $pa ~~ m:P5 /^-?\d+$/ ) {
 	$pa = { -exitval => $pa };
@@ -1588,8 +1619,8 @@ sub setup_pa_args { #($@)
     }
 
     # These are _our_ defaults.
-    $pa.{-verbose} = 0 unless exists($pa.{-verbose});
-    $pa.{-exitval} = 0 unless exists($pa.{-exitval});
+    $pa.{-verbose} = 0 unless $pa.{-verbose}:exists;
+    $pa.{-exitval} = 0 unless $pa.{-exitval}:exists;
     $pa;
 }
 
