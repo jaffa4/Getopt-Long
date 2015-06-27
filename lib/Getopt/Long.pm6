@@ -337,8 +337,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
     if ( $debug ) {
 	# Avoid some warnings if debugging.
 	#local ($^W) = 0;
-	print STDERR
-	  ("Getopt::Long $Getopt::Long::VERSION ",
+	$*ERR.print("Getopt::Long $Getopt::Long::VERSION ",
 	   "called from package \"$pkg\".",
 	   "\n  ",
 	   "argv: ",
@@ -368,7 +367,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
     if ( @optionlist && ref(@optionlist[0]) and
 	 UNIVERSAL::isa(@optionlist[0],'HASH') ) {
 	$userlinkage = shift (@optionlist);
-	print STDERR ("=> user linkage: $userlinkage\n") if $debug;
+	$*ERR.print("=> user linkage: $userlinkage\n") if $debug;
     }
 
     # See if the first element of the optionlist contains option
@@ -382,7 +381,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 	# Turn into regexp. Needs to be parenthesized!
 	$prefix ~~ s:P5:g/(\W)/\\$0/;
 	$prefix = "([" ~ $prefix ~ "])";
-	print STDERR ("=> prefix=\"$prefix\"\n") if $debug;
+	$*ERR.print("=> prefix=\"$prefix\"\n") if $debug;
     }
 
     # Verify correctness of optionlist.
@@ -434,7 +433,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 	    unless ( @optionlist > 0 && ref(@optionlist[0]) ) {
 		if ( $userlinkage.{$orig}:exists &&
 		     ref($userlinkage.{$orig}) ) {
-		    print STDERR ("=> found userlinkage for \"$orig\": ",
+		    $*ERR.print("=> found userlinkage for \"$orig\": ",
 				  "$userlinkage.{$orig}\n")
 			if $debug;
 		    unshift (@optionlist, $userlinkage.{$orig});
@@ -448,7 +447,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 
 	# Copy the linkage. If omitted, link to global variable.
 	if ( @optionlist > 0 && ref(@optionlist[0]) ) {
-	    print STDERR ("=> link \"$orig\" to @optionlist[0]\n")
+	    $*ERR.print("=> link \"$orig\" to @optionlist[0]\n")
 		if $debug;
 	    my $rl = ref(%linkage{$orig} = shift (@optionlist));
 
@@ -482,17 +481,17 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 	    my $ov = $orig;
 	    $ov ~~ s:P5:g/\W/_/;
 	    if ( %opctl{$name}[CTL_DEST] == CTL_DEST_ARRAY ) {
-		print STDERR ("=> link \"$orig\" to \@$pkg","::opt_$ov\n")
+		$*ERR.print("=> link \"$orig\" to \@$pkg","::opt_$ov\n")
 		    if $debug;
 		EVAL ("\%linkage{\$orig} = \\\@"~$pkg~"::opt_$ov;");
 	    }
 	    elsif ( %opctl{$name}[CTL_DEST] == CTL_DEST_HASH ) {
-		print STDERR ("=> link \"$orig\" to \%$pkg","::opt_$ov\n")
+		$*ERR.print("=> link \"$orig\" to \%$pkg","::opt_$ov\n")
 		    if $debug;
 		EVAL ("\%linkage{\$orig} = \\\%"~$pkg~"::opt_$ov;");
 	    }
 	    else {
-		print STDERR ("=> link \"$orig\" to \$$pkg"~"::opt_$ov\n")
+		$*ERR.print("=> link \"$orig\" to \$$pkg"~"::opt_$ov\n")
 		    if $debug;
 		EVAL ("\%linkage{\$orig} = \\\$"~$pkg~"::opt_$ov;");
 	    }
@@ -535,7 +534,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 	my ($arrow, $k, $v);
 	$arrow = "=> ";
 	while ( ($k,$v) = each(%opctl) ) {
-	    print STDERR ($arrow, "\%opctl{$k} = $v ", OptCtl($v), "\n");
+	    $*ERR.print($arrow, "\%opctl{$k} = $v ", OptCtl($v), "\n");
 	    $arrow = "   ";
 	}
     }
@@ -546,7 +545,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 
 	# Get next argument.
 	$opt = shift (@$argv);
-	print STDERR ("=> arg \"", $opt, "\"\n") if $debug;
+	$*ERR.print("=> arg \"", $opt, "\"\n") if $debug;
 
 	# Double dash is option list terminator.
 	if ( defined($opt) && $opt eq $argend ) {
@@ -573,18 +572,18 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 	    while ( defined $arg ) {
 
 		# Get the canonical name.
-		print STDERR ("=> cname for \"$opt\" is ") if $debug;
+		$*ERR.print("=> cname for \"$opt\" is ") if $debug;
 		$opt = $ctl.[CTL_CNAME];
-		print STDERR ("\"$ctl.[CTL_CNAME]\"\n") if $debug;
+		$*ERR.print("\"$ctl.[CTL_CNAME]\"\n") if $debug;
                
 		if ( defined %linkage{$opt} ) {
-		    print STDERR ("=> ref(\%L{$opt}) -> ",
+		    $*ERR.print("=> ref(\%L{$opt}) -> ",
 				  ref(%linkage{$opt}), "\n") if $debug;
 
 		    if ( ref(%linkage{$opt}) eq 'SCALAR'
 			 || ref(%linkage{$opt}) eq 'REF' ) {
 			if ( $ctl.[CTL_TYPE] eq '+' ) {
-			    print STDERR ("=> \$\%L\{$opt} += \"$arg\"\n")
+			    $*ERR.print("=> \$\%L\{$opt} += \"$arg\"\n")
 			      if $debug;
 			    if ( defined $(%linkage{$opt}) ) {
 			        $(%linkage{$opt}) += $arg;
@@ -594,43 +593,43 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 			    }
 			}  
 			elsif ( $ctl.[CTL_DEST] == CTL_DEST_ARRAY ) { 
-			    print STDERR ("=> ref(\%L\{$opt}) auto-vivified",
+			    $*ERR.print("=> ref(\%L\{$opt}) auto-vivified",
 					  " to ARRAY\n")
 			      if $debug;
 			    my $t = %linkage{$opt};
 			    $$t = %linkage{$opt} = [];
-			    print STDERR ("=> push(\@\{\%L\{$opt}, \"$arg\")\n")
+			    $*ERR.print("=> push(\@\{\%L\{$opt}, \"$arg\")\n")
 			      if $debug;
 			    push (@(%linkage{$opt}), $arg);
 			}
 			elsif ( $ctl.[CTL_DEST] == CTL_DEST_HASH ) {
-			    print STDERR ("=> ref(\%L\{$opt}) auto-vivified",
+			    $*ERR.print("=> ref(\%L\{$opt}) auto-vivified",
 					  " to HASH\n")
 			      if $debug;
 			    my $t = %linkage{$opt};
 			    $$t = %linkage{$opt} = {};
-			    print STDERR ("=> \$\%L{$opt}.{$key} = \"$arg\"\n")
+			    $*ERR.print("=> \$\%L{$opt}.{$key} = \"$arg\"\n")
 			      if $debug;
 			    %linkage{$opt}.{$key} = $arg;
 			}
 			else {
-			    print STDERR ("=> \$\%L{$opt} = \"$arg\"\n")
+			    $*ERR.print("=> \$\%L{$opt} = \"$arg\"\n")
 			      if $debug;
 			    $(%linkage{$opt}) = $arg;
 		        }
 		    }
 		    elsif ( ref(%linkage{$opt}) eq 'ARRAY' ) { 
-			print STDERR ("=> push(\@\{\%L{$opt}, \"$arg\")\n")
+			$*ERR.print("=> push(\@\{\%L{$opt}, \"$arg\")\n")
 			    if $debug;
 			push (@(%linkage{$opt}), $arg);
 		    }
 		    elsif ( ref(%linkage{$opt}) eq 'HASH' ) {
-			print STDERR ("=> \$\%L\{$opt}.\{$key} = \"$arg\"\n")
+			$*ERR.print("=> \$\%L\{$opt}.\{$key} = \"$arg\"\n")
 			    if $debug;
 			%linkage{$opt}.{$key} = $arg;
 		    }
 		    elsif ( ref(%linkage{$opt}) eq 'CODE' ) {  
-			print STDERR ("=> &L\{$opt}(\"$opt\"",
+			$*ERR.print("=> &L\{$opt}(\"$opt\"",
 				      $ctl.[CTL_DEST] == CTL_DEST_HASH ?? ", \"$key\"" !! "",
 				      ", \"$arg\")\n")
 			    if $debug;
@@ -650,7 +649,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 			    };
 			     $eval_error = $!;
 			};
-			print STDERR ("=> die($eval_error)\n")
+			$*ERR.print("=> die($eval_error)\n")
 			  if $debug && $eval_error ne '';
 			if ( $eval_error ~~ m:P5 /^!/ ) {
 			    if ( $eval_error ~~ m:P5 /^!FINISH\b/ ) {
@@ -663,7 +662,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 			}
 		    }
 		    else {
-			print STDERR ("Invalid REF type \"", ref(%linkage{$opt}),
+			$*ERR.print("Invalid REF type \"", ref(%linkage{$opt}),
 				      "\" in linkage\n");
 			die("Getopt::Long -- internal error!\n");
 		    }
@@ -671,31 +670,31 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 		# No entry in linkage means entry in userlinkage.
 		elsif ( $ctl.[CTL_DEST] == CTL_DEST_ARRAY ) {
 		    if ( defined $userlinkage.{$opt} ) {
-			print STDERR ("=> push(\@\{\%L{$opt}}, \"$arg\")\n")
+			$*ERR.print("=> push(\@\{\%L{$opt}}, \"$arg\")\n")
 			    if $debug;
 			push (@($userlinkage.{$opt}), $arg);
 		    }
 		    else {
-			print STDERR ("=>\%L{$opt} = [\"$arg\"]\n")
+			$*ERR.print("=>\%L{$opt} = [\"$arg\"]\n")
 			    if $debug;
 			$userlinkage.{$opt} = [$arg];
 		    }
 		}
 		elsif ( $ctl.[CTL_DEST] == CTL_DEST_HASH ) {
 		    if ( defined $userlinkage.{$opt} ) {
-			print STDERR ("=> \%L\{$opt}.\{$key} = \"$arg\"\n")
+			$*ERR.print("=> \%L\{$opt}.\{$key} = \"$arg\"\n")
 			    if $debug;
 			$userlinkage.{$opt}.{$key} = $arg;
 		    }
 		    else {
-			print STDERR ("=>\%L\{$opt} = \{$key => \"$arg\"}\n")
+			$*ERR.print("=>\%L\{$opt} = \{$key => \"$arg\"}\n")
 			    if $debug;
 			$userlinkage.{$opt} = {$key => $arg};
 		    }
 		}
 		else {
 		    if ( $ctl.[CTL_TYPE] eq '+' ) {
-			print STDERR ("=> \%L\{$opt} += \"$arg\"\n")
+			$*ERR.print("=> \%L\{$opt} += \"$arg\"\n")
 			  if $debug;
 			if ( defined $userlinkage.{$opt} ) {
 			    $userlinkage.{$opt} += $arg;
@@ -705,7 +704,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 			}
 		    }
 		    else {
-			print STDERR ("=>\%L\{$opt} = \"$arg\"\n") if $debug;
+			$*ERR.print("=>\%L\{$opt} = \"$arg\"\n") if $debug;
 			$userlinkage.{$opt} = $arg;
 		    }
 		}
@@ -759,7 +758,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 	    # Try non-options call-back.
 	    my $cb;
 	    if ( defined ($cb = %linkage{'<>'}) ) {
-		print STDERR ("=> &L\{$tryopt}(\"$tryopt\")\n")
+		$*ERR.print("=> &L\{$tryopt}(\"$tryopt\")\n")
 		  if $debug;
 		my $eval_error = do {
 		    temp $!;
@@ -773,7 +772,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 		    };
 		    $!;
 		};
-		print STDERR ("=> die($eval_error)\n")
+		$*ERR.print("=> die($eval_error)\n")
 		  if $debug && $eval_error ne '';
 		if ( $eval_error ~~ m:P5 /^!/ ) {
 		    if ( $eval_error ~~ m:P5 /^!FINISH\b/ ) {
@@ -786,7 +785,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 		}
 	    }
 	    else {
-		print STDERR ("=> saving \"$tryopt\" ",
+		$*ERR.print("=> saving \"$tryopt\" ",
 			      "(not an option, may permute)\n") if $debug;
 		push (@ret, $tryopt);
 	    }
@@ -805,7 +804,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
     # Finish.
     if ( @ret && $order == $PERMUTE ) {
 	#  Push back accumulated arguments
-	print STDERR ("=> restoring \"", join('" "', @ret), "\"\n")
+	$*ERR.print("=> restoring \"", join('" "', @ret), "\"\n")
 	    if $debug;
 	unshift (@$argv, @ret);
     }
@@ -965,7 +964,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
     
     #my ($argv, $prefix, $argend, $opt, $opctl) = @_;
 
-    print STDERR ("=> find \"$opt\"\n") if $debug;
+    $*ERR.print("=> find \"$opt\"\n") if $debug;
 
     return (0) unless defined($opt);
     return (0) unless $opt ~~ m:P5 /^($prefix)(.*)$/;
@@ -974,7 +973,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
     $opt = substr( $opt, length($1) ); # retain taintedness
     my $starter = $1;
 
-    print STDERR ("=> split \"$starter\"+\"$opt\"\n") if $debug;
+    $*ERR.print("=> split \"$starter\"+\"$opt\"\n") if $debug;
 
     my $optarg;			# value supplied with --opt=value
     my $rest;			# remainder from unbundling
@@ -987,7 +986,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	my $optorg = $opt;
 	$opt = substr($optorg, 0, $oppos);
 	$optarg = substr($optorg, $oppos + 1); # retain tainedness
-	print STDERR ("=> option \"", $opt,
+	$*ERR.print("=> option \"", $opt,
 		      "\", optarg = \"$optarg\"\n") if $debug;
     }
 
@@ -1003,7 +1002,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	# If bundling == 2, long options can override bundles.
 	if ( $bundling == 2 && length($tryopt) > 1
 	     && defined ($opctl.{$tryopt}) ) {
-	    print STDERR ("=> $starter$tryopt overrides unbundling\n")
+	    $*ERR.print("=> $starter$tryopt overrides unbundling\n")
 	      if $debug;
 	}
 
@@ -1014,7 +1013,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	    $rest = length ($tryopt) > 0 ?? substr ($tryopt, 1) !! '';
 	    $tryopt = substr ($tryopt, 0, 1);
 	    $tryopt = lc ($tryopt) if $ignorecase > 1;
-	    print STDERR ("=> $starter$tryopt unbundled from ",
+	    $*ERR.print("=> $starter$tryopt unbundled from ",
 			  "$starter$tryopt$rest\n") if $debug;
 	    # Whatever remains may not be considered an option.
 	    $optarg = $rest eq '' ?? Mu !! $rest;
@@ -1029,7 +1028,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	    $rest = length ($tryopt) > 0 ?? substr ($tryopt, 1) !! '';
 	    $tryopt = substr ($tryopt, 0, 1);
 	    $tryopt = lc ($tryopt) if $ignorecase > 1;
-	    print STDERR ("=> $starter$tryopt unbundled from ",
+	    $*ERR.print("=> $starter$tryopt unbundled from ",
 			  "$starter$tryopt$rest\n") if $debug;
 	    $rest = Mu unless $rest ne '';
 	}
@@ -1046,7 +1045,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	my $pat = quotemeta($opt);
 	# Look up in option names.
 	my @hits = grep (/^$pat/, @names);
-	print STDERR ("=> ", @hits.elems, " hits (@hits) with \"$pat\" ",
+	$*ERR.print("=> ", @hits.elems, " hits (@hits) with \"$pat\" ",
 		      "out of ", @names.elems, "\n") if $debug;
      
 	# Check for ambiguous results.
@@ -1103,7 +1102,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	    
 		if $debug 
 {
- print STDERR ("=> option \"$opt\" -> \"$tryopt\"\n");
+ $*ERR.print("=> option \"$opt\" -> \"$tryopt\"\n");
 }
 	}
     }
@@ -1140,7 +1139,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
      
     # Apparently valid.
     $opt = $tryopt;  
-    if $debug  {print STDERR ("=> found ", OptCtl($ctl),
+    if $debug  {$*ERR.print("=> found ", OptCtl($ctl),
 		  " for \"", $opt, "\"\n") }
 
     #### Determine argument status ####
