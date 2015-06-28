@@ -144,7 +144,8 @@ sub ConfigDefaults() {
 # Values for $order. See GNU getopt.c for details.
 ($REQUIRE_ORDER, $PERMUTE, $RETURN_IN_ORDER) = (0..2);
 # Version major/minor numbers.
-($major_version, $minor_version) = $VERSION ~~ m:P5 /^(\d+)\.(\d+)/;
+$VERSION ~~ m:P5 /^(\d+)\.(\d+)/;
+($major_version, $minor_version) = $0,$1;
 
 ConfigDefaults();
 #}
@@ -646,8 +647,13 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 				  ??  :8($arg)
 				  !! 0+$arg
 			    }
-			    ($key,$arg) = $arg ~~ m:P5 /^([^=]+)=(.*)/
-			      if $ctl.[CTL_DEST] == CTL_DEST_HASH;
+			    
+			    
+			      if $ctl.[CTL_DEST] == CTL_DEST_HASH
+			      {
+			       $arg ~~ m:P5 /^([^=]+)=(.*)/;
+			       ($key,$arg) = $0,$1;
+			      }
 			    next;
 			}
 			warn("Value \"$$argv[0]\" invalid for option $opt\n");
@@ -668,8 +674,13 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 			  ?? :8($arg)
 			  !! 0+$arg
 		    }
-		    ($key,$arg) = $arg ~~ m:P5 /^([^=]+)=(.*)/
-		      if $ctl.[CTL_DEST] == CTL_DEST_HASH;
+		   
+		   
+		      if $ctl.[CTL_DEST] == CTL_DEST_HASH
+		      {
+		         $arg ~~ m:P5 /^([^=]+)=(.*)/;
+		         ($key,$arg) = $0,$1;
+		      }
 		    next;
 		}
 	    }
