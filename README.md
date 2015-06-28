@@ -5,7 +5,7 @@ Getopt-Long
 
 Getopt::Long
 
-It is based on Getopt::Long Perl 5 module. See Getopt::Long Perl 5 documentation.
+It is based on Getopt::Long (2.47) Perl 5 module. See Getopt::Long Perl 5 documentation.
 It is in Alpha state.
 
 Usage:
