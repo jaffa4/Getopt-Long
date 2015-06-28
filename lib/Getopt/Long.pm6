@@ -10,7 +10,7 @@
 
 ################ Module Preamble ################
 
-class Getopt::Long;
+unit class Getopt::Long;
 
 #use 5.004;
 
@@ -165,19 +165,19 @@ sub new {
     my %atts = @_;
 
     # Register the callers package.
-    my $self = { caller_pkg => (caller)[0] };
+    my $self = { caller_pkg => callframe(1) };
 
     bless ($self, $class);
 
     # Process config attributes.
     if ( defined %atts{config} ) {
 	my $save = Getopt::Long::Configure ($default_config, @(%atts{config}));
-	$self.{settings} = Getopt::Long::Configure ($save);
+	$self.<settings> = Getopt::Long::Configure ($save);
 	%atts{config}:delete;
     }
     # Else use default config.
     else {
-	$self.{settings} = $default_config;
+	$self.<settings> = $default_config;
     }
 
     if ( %atts ) {		# Oops
@@ -192,10 +192,10 @@ sub configure {
     my ($self) = shift;
 
     # Restore settings, merge new settings in.
-    my $save = Getopt::Long::Configure ($self.{settings}, @_);
+    my $save = Getopt::Long::Configure ($self.<settings>, @_);
 
     # Restore orig config and save the new config.
-    $self.{settings} = Getopt::Long::Configure ($save);
+    $self.<settings> = Getopt::Long::Configure ($save);
 }
 
 sub getoptions {
@@ -208,11 +208,11 @@ sub getoptionsfromarray {
     my ($self) = shift;
 
     # Restore config settings.
-    my $save = Getopt::Long::Configure ($self.{settings});
+    my $save = Getopt::Long::Configure ($self.<settings>);
 
     # Call main routine.
     my $ret = 0;
-    $Getopt::Long::caller = $self.{caller_pkg};
+    $Getopt::Long::caller = $self.<caller_pkg>;
     my @__= @_;
     try {
 	# Locally set exception handler to default, otherwise it will
@@ -290,7 +290,7 @@ sub GetOptionsFromStringArray {
     my ($string) = shift;
     require Text::ParseWords;
     my $args = [ Text::ParseWords::shellwords($string) ];
-    $caller ||= (caller)[0];	# current context
+    $caller ||= callframe(1);	# current context
     my $ret = GetOptionsFromArray($args, @_);
     return ( $ret, $args );# if wantarray; check this
     if ( @$args ) {
@@ -309,7 +309,7 @@ sub GetOptionsFromStringSingle {
     my ($string) = shift;
     require Text::ParseWords;
     my $args = [ Text::ParseWords::shellwords($string) ];
-    $caller ||= (caller)[0];	# current context
+    $caller ||= callframe(1);	# current context
     my $ret = GetOptionsFromArray($args, @_);
     
     if ( @$args ) {
@@ -324,7 +324,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
  #   my ($argv, @optionlist) = @_;	# local copy of the option descriptions
     my $argend = '--';		# option list terminator
     my %opctl = ();		# table of option specs
-    my $pkg = $caller || (caller)[0];	# current context
+    my $pkg = $caller || callframe(1);	# current context
 				# Needed if linkage is omitted.
     my @ret = ();		# accum for non-options
     my %linkage;		# linkage
@@ -515,16 +515,16 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 
     # Supply --version and --help support, if needed and allowed.
     if ( defined($auto_version) ?? $auto_version !! ($requested_version >= 2.3203) ) {
-	if ( !defined(%opctl{version}) ) {
-	    %opctl{version} = ['','version',0,CTL_DEST_CODE,Mu];
-	    %linkage{version} = \&VersionMessage;
+	if ( !defined(%opctl<version>) ) {
+	    %opctl<version> = ['','version',0,CTL_DEST_CODE,Mu];
+	    %linkage<version> = \&VersionMessage;
 	}
 	$auto_version = 1;
     }
     if ( defined($auto_help) ?? $auto_help !! ($requested_version >= 2.3203) ) {
-	if ( !defined(%opctl{help}) && !defined(%opctl{'?'}) ) {
-	    %opctl{help} = %opctl{'?'} = ['','help',0,CTL_DEST_CODE,Mu];
-	    %linkage{help} = \&HelpMessage;
+	if ( !defined(%opctl<help>) && !defined(%opctl{'?'}) ) {
+	    %opctl<help> = %opctl{'?'} = ['','help',0,CTL_DEST_CODE,Mu];
+	    %linkage<help> = \&HelpMessage;
 	}
 	$auto_help = 1;
     }
@@ -533,7 +533,8 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
     if ( $debug ) {
 	my ($arrow, $k, $v);
 	$arrow = "=> ";
-	while ( ($k,$v) = each(%opctl) ) {
+        for %opctl.kv -> $k,$v {
+	#while ( ($k,$v) = each(%opctl) ) {
 	    $*ERR.print($arrow, "\%opctl{$k} = $v ", OptCtl($v), "\n");
 	    $arrow = "   ";
 	}
@@ -721,7 +722,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 			    if ( $ctl.[CTL_TYPE] ~~ m:P5 /^[iIo]$/ ) {
 				$arg ~~ s:P5:g/_//;
 				$arg = $ctl.[CTL_TYPE] eq 'o' && $arg ~~ m:P5 /^0/
-				  ?? oct($arg)
+				  ??  :8($arg)
 				  !! 0+$arg
 			    }
 			    ($key,$arg) = $arg ~~ m:P5 /^([^=]+)=(.*)/
@@ -743,7 +744,7 @@ sub GetOptionsFromArray($argv, @optionlist) { # check this
 		    if ( $ctl.[CTL_TYPE] ~~ m:P5 /^[iIo]$/ ) {
 			$arg ~~ s:P5:g/_//;
 			$arg = $ctl.[CTL_TYPE] eq 'o' && $arg ~~ m:P5 /^0/
-			  ?? oct($arg)
+			  ?? :8($arg)
 			  !! 0+$arg
 		    }
 		    ($key,$arg) = $arg ~~ m:P5 /^([^=]+)=(.*)/
@@ -928,7 +929,7 @@ sub ParseOptionSpec ($opt, $opctl) {
     for ( @names ) {
 
 	$_ = lc ($_)
-	  if $ignorecase > (($bundling && length($_) == 1) ?? 1 !! 0);
+	  if $ignorecase > (($bundling &&  $_.chars == 1) ?? 1 !! 0);
 
 	if ( $opctl.{$_}:exists ) {
 	    $dups ~= "Duplicate specification \"$opt\" for option \"$_\"\n";
@@ -970,7 +971,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
     return (0) unless $opt ~~ m:P5 /^($prefix)(.*)$/;
     return (0) if $opt eq "-" && !defined $opctl.{''};
 
-    $opt = substr( $opt, length($1) ); # retain taintedness
+    $opt = substr( $opt, $1.chars ); # retain taintedness
     my $starter = $1;
 
     $*ERR.print("=> split \"$starter\"+\"$opt\"\n") if $debug;
@@ -1000,7 +1001,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	$tryopt = $ignorecase ?? lc($opt) !! $opt;
 
 	# If bundling == 2, long options can override bundles.
-	if ( $bundling == 2 && length($tryopt) > 1
+	if ( $bundling == 2 && $tryopt.chars > 1
 	     && defined ($opctl.{$tryopt}) ) {
 	    $*ERR.print("=> $starter$tryopt overrides unbundling\n")
 	      if $debug;
@@ -1010,7 +1011,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	elsif ( $bundling_values ) {
 	    $tryopt = $opt;
 	    # Unbundle single letter option.
-	    $rest = length ($tryopt) > 0 ?? substr ($tryopt, 1) !! '';
+	    $rest = $tryopt.chars > 0 ?? substr ($tryopt, 1) !! '';
 	    $tryopt = substr ($tryopt, 0, 1);
 	    $tryopt = lc ($tryopt) if $ignorecase > 1;
 	    $*ERR.print("=> $starter$tryopt unbundled from ",
@@ -1025,7 +1026,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	else {
 	    $tryopt = $opt;
 	    # Unbundle single letter option.
-	    $rest = length ($tryopt) > 0 ?? substr ($tryopt, 1) !! '';
+	    $rest =  $tryopt.chars > 0 ?? substr ($tryopt, 1) !! '';
 	    $tryopt = substr ($tryopt, 0, 1);
 	    $tryopt = lc ($tryopt) if $ignorecase > 1;
 	    $*ERR.print("=> $starter$tryopt unbundled from ",
@@ -1071,11 +1072,11 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
             
 	    # Remove auto-supplied options (version, help).
 	    if ( keys(%hit) == 2 ) {  
-		if ( $auto_version && (%hit{version}:exists) ) {
-		    %hit{version}:delete;
+		if ( $auto_version && (%hit<version>:exists) ) {
+		    %hit<version>:delete;
 		}
-		elsif ( $auto_help && (%hit{help} :exists)) {
-		    %hit{help}:delete;
+		elsif ( $auto_help && (%hit<help> :exists)) {
+		    %hit<help>:delete;
 		}
 	    }   ; 
 	    # Now see if it really is ambiguous.
@@ -1120,7 +1121,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
           return (0)
           }
 	# Pretend one char when bundling.
-	if ( $bundling == 1 && length($starter) == 1 ) {
+	if ( $bundling == 1 && $starter.chars == 1 ) {
 	    $opt = substr($opt,0,1);
            if defined $rest
            {
@@ -1281,7 +1282,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
             {
 	    chop($key) 
             }
-	    $arg = ($type eq 'o' && $arg ~~ m:P5 /^0/) ?? oct($arg) !! 0+$arg;
+	    $arg = ($type eq 'o' && $arg ~~ m:P5 /^0/) ?? :8($arg) !! 0+$arg;
             if defined $rest && $rest ne ''
             {
 	    unshift (@$argv, $starter.$rest) ;
@@ -1289,7 +1290,7 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	}
 	elsif ( $arg ~~ m:P5:i /^$o_valid$/ ) {
 	    $arg ~~ s:P5:g/_//;
-	    $arg = ($type eq 'o' && $arg ~~ m:P5 /^0/) ?? oct($arg) !! 0+$arg;
+	    $arg = ($type eq 'o' && $arg ~~ m:P5 /^0/) ?? :8($arg) !! 0+$arg;
 	}
 	else {
 	    if ( defined $optarg || $mand ) {
@@ -1549,10 +1550,10 @@ sub VersionMessage(@v) {
     my $pa = setup_pa_args("version", @v);
 
     my $v = $main::VERSION;
-    my $fh = $pa.{-output} ||
-      ($pa.{-exitval} eq "NOEXIT" || $pa.{-exitval} < 2) ?? $*OUT !! $*ERR;
+    my $fh = $pa.<-output> ||
+      ($pa.<-exitval> eq "NOEXIT" || $pa.<-exitval> < 2) ?? $*OUT !! $*ERR;
 
-    print $fh: (defined($pa.{-message}) ?? $pa.{-message} !! (),
+    print $fh: (defined($pa.<-message>) ?? $pa.<-message> !! (),
 	       $0, defined $v ?? " version $v" !! (),
 	       "\n",
 	       "(", $?PACKAGE, "::", "GetOptions",
@@ -1562,7 +1563,7 @@ sub VersionMessage(@v) {
 	       " Perl version ",
 	       $*PERL.version >= 5.006 ?? sprintf("%vd", $*PERL.version) !! -99999,
 	       ")\n");
-    exit($pa.{-exitval}) unless $pa.{-exitval} eq "NOEXIT";
+    exit($pa.<-exitval>) unless $pa.<-exitval> eq "NOEXIT";
 }
 
 # Issue a standard message for --help.
@@ -1581,7 +1582,8 @@ sub HelpMessage(@a) {
     " || die("Cannot provide help: cannot load Pod::Usage\n");
 
     # Note that pod2usage will issue a warning if -exitval => NOEXIT.
-    pod2usage(setup_pa_args("help", @a));
+    die "pod2usage not implemented"; #next line
+   # pod2usage(setup_pa_args("help", @a));
 
 }
 
@@ -1607,8 +1609,8 @@ sub setup_pa_args { #($@)
 
     if ( UNIVERSAL::isa($pa, 'HASH') ) {
 	# Get rid of -msg vs. -message ambiguity.
-	$pa.{-message} = $pa.{-msg};
-	$pa.{-msg}:delete;
+	$pa.<-message> = $pa.<-msg>;
+	$pa.<-msg>:delete;
     }
     elsif ( $pa ~~ m:P5 /^-?\d+$/ ) {
 	$pa = { -exitval => $pa };
@@ -1618,8 +1620,8 @@ sub setup_pa_args { #($@)
     }
 
     # These are _our_ defaults.
-    $pa.{-verbose} = 0 unless $pa.{-verbose}:exists;
-    $pa.{-exitval} = 0 unless $pa.{-exitval}:exists;
+    $pa.<-verbose> = 0 unless $pa.<-verbose>:exists;
+    $pa.<-exitval> = 0 unless $pa.<-exitval>:exists;
     $pa;
 }
 
