@@ -10,7 +10,8 @@
 
 ################ Module Preamble ################
 
-unit class Getopt::Long;
+module Getopt::Long
+{
 
 #use 5.004;
 
@@ -27,12 +28,12 @@ $VERSION_STRING = "2.47";
 #@ISA = qw(Exporter);
 
 # Exported subroutines.
-sub GetOptions {...};		# always
-sub GetOptionsFromArray  {...};	# on demand
-sub GetOptionsFromString  {...};	# on demand
-sub Configure  {...};		# on demand
-sub HelpMessage  {...};		# on demand
-sub VersionMessage  {...};		# in demand
+#sub GetOptions {...};		# always
+#sub GetOptionsFromArray  {...};	# on demand
+#sub GetOptionsFromString  {...};	# on demand
+#sub Configure  {...};		# on demand
+#sub HelpMessage  {...};		# on demand
+#sub VersionMessage  {...};		# in demand
 
 BEGIN {
     # Init immediately so their contents can be used in the 'use vars' below.
@@ -58,14 +59,14 @@ our ($genprefix,$caller,$gnu_compat,$auto_help,$auto_version,$longprefix);
 my $bundling_values;
 
 # Public subroutines.
-sub config {};			# deprecated name
+#sub config {};			# deprecated name
 
 # Private subroutines.
 #sub ConfigDefaults()   {...};
-sub ParseOptionSpec  {...};
-sub OptCtl  {...};
-sub FindOption  {...};
-sub ValidValue   {...};
+#sub ParseOptionSpec  {...};
+#sub OptCtl  {...};
+#sub FindOption  {...};
+#sub ValidValue   {...};
 
 ################ Local Variables ################
 
@@ -86,7 +87,7 @@ sub quotemeta($s)
 sub ref($e)
 {
   #return "" if ($e.WHAT eq "(Str)" || $e.WHAT eq "(Int)");
-  return substr($e.WHAT,1,-1);
+  return $e.WHAT.^name;
 }
 
 sub ConfigDefaults() {
@@ -145,93 +146,12 @@ sub ConfigDefaults() {
 ($major_version, $minor_version) = $VERSION ~~ m:P5 /^(\d+)\.(\d+)/;
 
 ConfigDefaults();
-
+#}
 ################ OO Interface ################
 
-class Getopt::Long::Parser
-{
-
-# Store a copy of the default configuration. Since ConfigDefaults has
-# just been called, what we get from Configure is the default.
-my $default_config = do {
-    Getopt::Long::Configure ()
-};
-
-
-
-sub new {
-    my $that = shift;
-    my $class = ref($that) || $that;
-    my %atts = @_;
-
-    # Register the callers package.
-    my $self = { caller_pkg => callframe(1) };
-
-    bless ($self, $class);
-
-    # Process config attributes.
-    if ( defined %atts{config} ) {
-	my $save = Getopt::Long::Configure ($default_config, @(%atts{config}));
-	$self.<settings> = Getopt::Long::Configure ($save);
-	%atts{config}:delete;
-    }
-    # Else use default config.
-    else {
-	$self.<settings> = $default_config;
-    }
-
-    if ( %atts ) {		# Oops
-	die($?PACKAGE~": unhandled attributes: "~
-	    join(" ", sort(keys(%atts)))~"\n");
-    }
-
-    $self;
-}
-
-sub configure {
-    my ($self) = shift;
-
-    # Restore settings, merge new settings in.
-    my $save = Getopt::Long::Configure ($self.<settings>, @_);
-
-    # Restore orig config and save the new config.
-    $self.<settings> = Getopt::Long::Configure ($save);
-}
-
-sub getoptions {
-    my ($self) = shift;
-
-    return $self.getoptionsfromarray(\@*ARGS, @_);
-}
-
-sub getoptionsfromarray {
-    my ($self) = shift;
-
-    # Restore config settings.
-    my $save = Getopt::Long::Configure ($self.<settings>);
-
-    # Call main routine.
-    my $ret = 0;
-    $Getopt::Long::caller = $self.<caller_pkg>;
-    my @__= @_;
-    try {
-	# Locally set exception handler to default, otherwise it will
-	# be called implicitly here, and again explicitly when we try
-	# to deliver the messages.
-	# local (%SIG{__DIE__}) = 'DEFAULT'; check this
-	$ret = Getopt::Long::GetOptionsFromArray (@__);
-    };
-
-    # Restore saved settings.
-    Getopt::Long::Configure ($save);
-
-    # Handle errors and return value.
-    die ($!) if $!;
-    return $ret;
-}
-}
-class Getopt::Long
-{
+#
+#package Getopt::Long
+#{
 
 ################ Back to Normal ################
 
@@ -287,7 +207,7 @@ sub GetOptions {
 }
 
 sub GetOptionsFromStringArray {
-    my ($string) = shift;
+    my ($string) = shift @_;
     require Text::ParseWords;
     my $args = [ Text::ParseWords::shellwords($string) ];
     $caller ||= callframe(1);	# current context
@@ -306,7 +226,7 @@ sub GetOptionsFromString {
 }
 
 sub GetOptionsFromStringSingle {
-    my ($string) = shift;
+    my ($string) = shift @_;
     require Text::ParseWords;
     my $args = [ Text::ParseWords::shellwords($string) ];
     $caller ||= callframe(1);	# current context
@@ -1011,8 +931,8 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	elsif ( $bundling_values ) {
 	    $tryopt = $opt;
 	    # Unbundle single letter option.
-	    $rest = $tryopt.chars > 0 ?? substr ($tryopt, 1) !! '';
-	    $tryopt = substr ($tryopt, 0, 1);
+	    $rest = $tryopt.chars > 0 ?? $tryopt.substr(1) !! '';
+	    $tryopt = substr($tryopt, 0, 1);
 	    $tryopt = lc ($tryopt) if $ignorecase > 1;
 	    $*ERR.print("=> $starter$tryopt unbundled from ",
 			  "$starter$tryopt$rest\n") if $debug;
@@ -1026,8 +946,8 @@ sub FindOption ($argv, $prefix, $argend, $opt, $opctl) {
 	else {
 	    $tryopt = $opt;
 	    # Unbundle single letter option.
-	    $rest =  $tryopt.chars > 0 ?? substr ($tryopt, 1) !! '';
-	    $tryopt = substr ($tryopt, 0, 1);
+	    $rest =  $tryopt.chars > 0 ?? substr($tryopt, 1) !! '';
+	    $tryopt = substr($tryopt, 0, 1);
 	    $tryopt = lc ($tryopt) if $ignorecase > 1;
 	    $*ERR.print("=> $starter$tryopt unbundled from ",
 			  "$starter$tryopt$rest\n") if $debug;
@@ -1411,8 +1331,8 @@ sub ValidValue ($ctl, $arg, $mand, $argend, $prefix)  {
 
 
 # Getopt::Long Configuration.
-sub Configure (@options) { # check this
-   #my (@options) = @_;
+our sub Configure  { # check this
+   my (@options) = @_;
 
     my $prevconfig =
       [ $error, $debug, $major_version, $minor_version, $caller,
@@ -1590,7 +1510,7 @@ sub HelpMessage(@a) {
 # Helper routine to set up a normalized hash ref to be used as
 # argument to pod2usage.
 sub setup_pa_args { #($@) 
-    my $tag = shift;		# who's calling
+    my $tag = shift @_;		# who's calling
 
     # If called by direct binding to an option, it will get the option
     # name and value as arguments. Remove these, if so.
@@ -1601,7 +1521,7 @@ sub setup_pa_args { #($@)
 	$pa = { @_ };
     }
     else {
-	$pa = shift || {};
+	$pa = (shift @_) || {};
     }
 
     # At this point, $pa can be a number (exit value), string
@@ -1628,21 +1548,106 @@ sub setup_pa_args { #($@)
 
 
 # Sneak way to know what version the user requested.
-sub VERSION {
-    $requested_version = $_[1];
-    shift.SUPER::VERSION(@_);
+#sub VERSION { #check this not sure what it is
+#    $requested_version = $_[1];
+#    shift.SUPER::VERSION(@_);
+#}
+}
+class Getopt::Long::Parser
+{
+
+# Store a copy of the default configuration. Since ConfigDefaults has
+# just been called, what we get from Configure is the default.
+my $default_config = do {
+    print "here";
+    Getopt::Long::Configure();
+};
+
+has $.caller_pkg;
+has $.settings;
+
+
+method new (%atts){
+    #my $that = shift;
+    #my $class = ref($that) || $that;
+    #my %atts = @_;
+
+    # Register the callers package.
+    my $self = { caller_pkg => callframe(1) };
+
+    
+
+    # Process config attributes.
+    if ( defined %atts<config> ) {
+	my $save = Getopt::Long::Configure ($default_config, @(%atts<config>));
+	$self.<settings> = Getopt::Long::Configure ($save);
+	%atts<config>:delete;
+    }
+    # Else use default config.
+    else {
+	$self.<settings> = $default_config;
+    }
+
+    if ( %atts ) {		# Oops
+	die($?PACKAGE~": unhandled attributes: "~
+	    join(" ", sort(keys(%atts)))~"\n");
+    }
+
+    self.bless($self);
+}
+
+sub configure {
+    my ($self) = shift @_;
+
+    # Restore settings, merge new settings in.
+    my $save = Getopt::Long::Configure ($self.<settings>, @_);
+
+    # Restore orig config and save the new config.
+    $self.<settings> = Getopt::Long::Configure ($save);
+}
+
+sub getoptions {
+    my ($self) = shift @_;
+
+    return $self.getoptionsfromarray(\@*ARGS, @_);
+}
+
+sub getoptionsfromarray {
+    my ($self) = shift @_;
+
+    # Restore config settings.
+    my $save = Getopt::Long::Configure ($self.<settings>);
+
+    # Call main routine.
+    my $ret = 0;
+    $Getopt::Long::caller = $self.<caller_pkg>;
+    my @__= @_;
+    try {
+	# Locally set exception handler to default, otherwise it will
+	# be called implicitly here, and again explicitly when we try
+	# to deliver the messages.
+	# local (%SIG{__DIE__}) = 'DEFAULT'; check this
+	$ret = Getopt::Long::GetOptionsFromArray (@__);
+    };
+
+    # Restore saved settings.
+    Getopt::Long::Configure ($save);
+
+    # Handle errors and return value.
+    die ($!) if $!;
+    return $ret;
 }
 }
 class Getopt::Long::CallBack
 {
 
-sub new {
-    my ($pkg, %atts) = @_;
-    bless { %atts }, $pkg;
+method new (%atts) {
+  #  my ($pkg, %atts) = @_;
+    self.bless( %atts);#, $pkg;
 }
 
 sub name {
-    my $self = shift;
+    my $self = shift @_;
     ''.$self.{name};
 }
 
@@ -1655,7 +1660,7 @@ sub name {
 #}
 
 }
-1;
+
 
 
 
