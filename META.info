@@ -1,0 +1,7 @@
+{
+    "name" : "Getopt::Long",
+    "version" : "0.1",
+    "description" : "Getopt::Long in Perl 6",
+    "depends" : [ ],
+    "source-url" : "git://github.com/jaffa4/Getopt-Long.git"
+}

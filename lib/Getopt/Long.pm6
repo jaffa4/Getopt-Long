@@ -201,11 +201,11 @@ constant PAT_FLOAT =
   "(\.[0-9_]+)?"~		# optional fraction
   "([eE][-+]?[0-9_]+)?";	# optional exponent
 
-sub GetOptions {
+sub GetOptions is export {
     # Shift in default array.
-    unshift(@_, item @*ARGV);
+   # unshift(@_, item @*ARGV);
     # Try to keep caller() and Carp consistent.
-    GetOptionsFromArray(@_);
+    GetOptionsFromArray(@*ARGV,@_);
 }
 
 sub GetOptionsFromStringArray {
